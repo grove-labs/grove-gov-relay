@@ -1,4 +1,4 @@
-# 🏛️🌱 Bloom Gov Relay 🏛️🌱
+# 🏛️🌳 Grove Gov Relay 🏛️🌳
 This repository contains infrastructure necessary to process cross-chain execution of governance proposals.
 
 The codebase uses [Foundry](https://github.com/foundry-rs/foundry) as the development framework. In order to run tests, deploy contracts, or perform other operations, use standard [Foundry](https://github.com/foundry-rs/foundry) commands.
