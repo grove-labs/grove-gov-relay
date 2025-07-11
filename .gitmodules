@@ -7,6 +7,6 @@
 [submodule "lib/openzeppelin-contracts"]
 	path = lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
-[submodule "lib/spark-address-registry"]
-	path = lib/spark-address-registry
-	url = https://github.com/marsfoundation/spark-address-registry
+[submodule "lib/grove-address-registry"]
+	path = lib/grove-address-registry
+	url = https://github.com/grove-labs/grove-address-registry

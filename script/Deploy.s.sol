@@ -3,7 +3,9 @@ pragma solidity ^0.8.0;
 
 import { console } from "forge-std/console.sol";
 
-import { Ethereum } from "lib/spark-address-registry/src/Ethereum.sol";
+import { Ethereum } from "lib/grove-address-registry/src/Ethereum.sol";
+
+import { CCTPForwarder } from "lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
 
 import { Script } from 'forge-std/Script.sol';
 
@@ -17,7 +19,7 @@ contract DeployArbitrumOneExecutor is Script {
         vm.startBroadcast();
 
         address executor = Deploy.deployExecutor(0, 7 days);
-        address receiver = Deploy.deployArbitrumReceiver(Ethereum.SPARK_PROXY, executor);
+        address receiver = Deploy.deployArbitrumReceiver(Ethereum.GROVE_PROXY, executor);
 
         console.log("executor deployed at:", executor);
         console.log("receiver deployed at:", receiver);
@@ -37,7 +39,7 @@ contract DeployBaseExecutor is Script {
         vm.startBroadcast();
 
         address executor = Deploy.deployExecutor(0, 7 days);
-        address receiver = Deploy.deployOptimismReceiver(Ethereum.SPARK_PROXY, executor);
+        address receiver = Deploy.deployOptimismReceiver(Ethereum.GROVE_PROXY, executor);
 
         console.log("executor deployed at:", executor);
         console.log("receiver deployed at:", receiver);
@@ -57,7 +59,7 @@ contract DeployOptimismExecutor is Script {
         vm.startBroadcast();
 
         address executor = Deploy.deployExecutor(0, 7 days);
-        address receiver = Deploy.deployOptimismReceiver(Ethereum.SPARK_PROXY, executor);
+        address receiver = Deploy.deployOptimismReceiver(Ethereum.GROVE_PROXY, executor);
 
         console.log("executor deployed at:", executor);
         console.log("receiver deployed at:", receiver);
@@ -77,7 +79,32 @@ contract DeployUnichainExecutor is Script {
         vm.startBroadcast();
 
         address executor = Deploy.deployExecutor(0, 7 days);
-        address receiver = Deploy.deployOptimismReceiver(Ethereum.SPARK_PROXY, executor);
+        address receiver = Deploy.deployOptimismReceiver(Ethereum.GROVE_PROXY, executor);
+
+        console.log("executor deployed at:", executor);
+        console.log("receiver deployed at:", receiver);
+
+        Deploy.setUpExecutorPermissions(executor, receiver, msg.sender);
+
+        vm.stopBroadcast();
+    }
+
+}
+
+contract DeployAvalancheExecutor is Script {
+
+    function run() public {
+        vm.createSelectFork(getChain("avalanche").rpcUrl);
+
+        vm.startBroadcast();
+
+        address executor = Deploy.deployExecutor(0, 7 days);
+        address receiver = Deploy.deployCCTPReceiver(
+            CCTPForwarder.MESSAGE_TRANSMITTER_CIRCLE_AVALANCHE,
+            CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
+            bytes32(uint256(uint160(Ethereum.GROVE_PROXY))),
+            executor
+        );
 
         console.log("executor deployed at:", executor);
         console.log("receiver deployed at:", receiver);

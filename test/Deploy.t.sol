@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import 'forge-std/Test.sol';
 
 import { OptimismReceiver } from 'lib/xchain-helpers/src/receivers/OptimismReceiver.sol';
+import { CCTPReceiver }     from 'lib/xchain-helpers/src/receivers/CCTPReceiver.sol';
 
 import { Deploy } from "../deploy/Deploy.sol";
 
@@ -25,6 +26,19 @@ contract DeployTests is Test {
 
         assertEq(OptimismReceiver(receiver).l1Authority(), makeAddr("l1Authority"));
         assertEq(OptimismReceiver(receiver).target(),      makeAddr("executor"));
+    }
+
+    function test_deployCCTPReceiver() public {
+        bytes32 sourceAuthority = bytes32(uint256(uint160(makeAddr("sourceAuthority"))));
+
+        CCTPReceiver receiver = CCTPReceiver(
+            Deploy.deployCCTPReceiver(makeAddr("destinationMessenger"), 0, sourceAuthority, makeAddr("executor"))
+        );
+
+        assertEq(CCTPReceiver(receiver).destinationMessenger(), makeAddr("destinationMessenger"));
+        assertEq(CCTPReceiver(receiver).sourceDomainId(),       0);
+        assertEq(CCTPReceiver(receiver).sourceAuthority(),      sourceAuthority);
+        assertEq(CCTPReceiver(receiver).target(),               makeAddr("executor"));
     }
 
     function test_setUpExecutorPermissions() public {
