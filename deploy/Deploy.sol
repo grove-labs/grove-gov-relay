@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import { ArbitrumReceiver } from 'lib/xchain-helpers/src/receivers/ArbitrumReceiver.sol';
 import { OptimismReceiver } from 'lib/xchain-helpers/src/receivers/OptimismReceiver.sol';
+import { CCTPReceiver }     from 'lib/xchain-helpers/src/receivers/CCTPReceiver.sol';
 
 import { Executor } from 'src/Executor.sol';
 
@@ -24,6 +25,12 @@ library Deploy {
         internal returns (address receiver)
     {
         receiver = address(new OptimismReceiver(l1Authority, executor));
+    }
+
+    function deployCCTPReceiver(address destinationMessenger, uint32 sourceDomainId, bytes32 sourceAuthority, address executor)
+        internal returns (address receiver)
+    {
+        receiver = address(new CCTPReceiver(destinationMessenger, sourceDomainId, sourceAuthority, executor));
     }
 
     function setUpExecutorPermissions(address executor_, address receiver, address deployer)
