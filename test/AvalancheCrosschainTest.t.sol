@@ -31,7 +31,7 @@ contract AvalancheCrosschainTest is CrosschainTestBase {
             CCTPBridgeTesting.getCircleMessengerFromChainAlias(bridge.destination.chain.chainAlias),
             uint32(0),  // Ethereum Circle domain id
             bytes32(uint256(uint160(defaultL2BridgeExecutorArgs.ethereumGovernanceExecutor))),
-            vm.computeCreateAddress(address(this), 2)
+            vm.computeCreateAddress(address(this), 3)
         ));
     }
 

@@ -116,3 +116,23 @@ contract DeployAvalancheExecutor is Script {
 
 }
 
+contract DeployPlumeExecutor is Script {
+
+    function run() public {
+        vm.createSelectFork(vm.envString("PLUME_RPC_URL"));
+
+        vm.startBroadcast();
+
+        address executor = Deploy.deployExecutor(0, 7 days);
+        address receiver = Deploy.deployArbitrumReceiver(Ethereum.GROVE_PROXY, executor);
+
+        console.log("executor deployed at:", executor);
+        console.log("receiver deployed at:", receiver);
+
+        Deploy.setUpExecutorPermissions(executor, receiver, msg.sender);
+
+        vm.stopBroadcast();
+    }
+
+}
+
