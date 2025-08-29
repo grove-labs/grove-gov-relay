@@ -11,10 +11,14 @@ import { Script } from 'forge-std/Script.sol';
 
 import { Deploy } from "../deploy/Deploy.sol";
 
+import { Verify } from "../deploy/Verify.sol";
+
 contract DeployArbitrumOneExecutor is Script {
 
     function run() public {
         vm.createSelectFork(getChain("arbitrum_one").rpcUrl);
+
+        Verify.verifyChainId(42161);
 
         vm.startBroadcast();
 
@@ -27,6 +31,19 @@ contract DeployArbitrumOneExecutor is Script {
         Deploy.setUpExecutorPermissions(executor, receiver, msg.sender);
 
         vm.stopBroadcast();
+
+        Verify.verifyArbitrumDeployment(
+            Verify.Deployment({
+                executor: executor,
+                receiver: receiver,
+                deployer: msg.sender
+            }),
+            Verify.ExecutorParams({
+                delay:       0,
+                gracePeriod: 7 days
+            })
+        );
+
     }
 
 }
@@ -36,6 +53,8 @@ contract DeployBaseExecutor is Script {
     function run() public {
         vm.createSelectFork(getChain("base").rpcUrl);
 
+        Verify.verifyChainId(8453);
+
         vm.startBroadcast();
 
         address executor = Deploy.deployExecutor(0, 7 days);
@@ -47,6 +66,18 @@ contract DeployBaseExecutor is Script {
         Deploy.setUpExecutorPermissions(executor, receiver, msg.sender);
 
         vm.stopBroadcast();
+
+        Verify.verifyOptimismDeployment(
+            Verify.Deployment({
+                executor: executor,
+                receiver: receiver,
+                deployer: msg.sender
+            }),
+            Verify.ExecutorParams({
+                delay:       0,
+                gracePeriod: 7 days
+            })
+        );
     }
 
 }
@@ -56,6 +87,8 @@ contract DeployOptimismExecutor is Script {
     function run() public {
         vm.createSelectFork(getChain("optimism").rpcUrl);
 
+        Verify.verifyChainId(10);
+
         vm.startBroadcast();
 
         address executor = Deploy.deployExecutor(0, 7 days);
@@ -67,6 +100,18 @@ contract DeployOptimismExecutor is Script {
         Deploy.setUpExecutorPermissions(executor, receiver, msg.sender);
 
         vm.stopBroadcast();
+
+        Verify.verifyOptimismDeployment(
+            Verify.Deployment({
+                executor: executor,
+                receiver: receiver,
+                deployer: msg.sender
+            }),
+            Verify.ExecutorParams({
+                delay:       0,
+                gracePeriod: 7 days
+            })
+        );
     }
 
 }
@@ -76,6 +121,8 @@ contract DeployUnichainExecutor is Script {
     function run() public {
         vm.createSelectFork(vm.envString("UNICHAIN_RPC_URL"));
 
+        Verify.verifyChainId(130);
+
         vm.startBroadcast();
 
         address executor = Deploy.deployExecutor(0, 7 days);
@@ -87,6 +134,18 @@ contract DeployUnichainExecutor is Script {
         Deploy.setUpExecutorPermissions(executor, receiver, msg.sender);
 
         vm.stopBroadcast();
+
+        Verify.verifyOptimismDeployment(
+            Verify.Deployment({
+                executor: executor,
+                receiver: receiver,
+                deployer: msg.sender
+            }),
+            Verify.ExecutorParams({
+                delay:       0,
+                gracePeriod: 7 days
+            })
+        );
     }
 
 }
@@ -95,6 +154,8 @@ contract DeployAvalancheExecutor is Script {
 
     function run() public {
         vm.createSelectFork(getChain("avalanche").rpcUrl);
+
+        Verify.verifyChainId(43114);
 
         vm.startBroadcast();
 
@@ -112,6 +173,19 @@ contract DeployAvalancheExecutor is Script {
         Deploy.setUpExecutorPermissions(executor, receiver, msg.sender);
 
         vm.stopBroadcast();
+
+        Verify.verifyCctpDeployment(
+            Verify.Deployment({
+                executor: executor,
+                receiver: receiver,
+                deployer: msg.sender
+            }),
+            Verify.ExecutorParams({
+                delay:       0,
+                gracePeriod: 7 days
+            }),
+            CCTPForwarder.MESSAGE_TRANSMITTER_CIRCLE_AVALANCHE
+        );
     }
 
 }
@@ -120,6 +194,8 @@ contract DeployPlumeExecutor is Script {
 
     function run() public {
         vm.createSelectFork(vm.envString("PLUME_RPC_URL"));
+
+        Verify.verifyChainId(98866);
 
         vm.startBroadcast();
 
@@ -132,6 +208,18 @@ contract DeployPlumeExecutor is Script {
         Deploy.setUpExecutorPermissions(executor, receiver, msg.sender);
 
         vm.stopBroadcast();
+
+        Verify.verifyArbitrumDeployment(
+            Verify.Deployment({
+                executor: executor,
+                receiver: receiver,
+                deployer: msg.sender
+            }),
+            Verify.ExecutorParams({
+                delay:       0,
+                gracePeriod: 7 days
+            })
+        );
     }
 
 }
