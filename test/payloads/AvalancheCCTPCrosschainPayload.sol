@@ -5,7 +5,7 @@ import { CCTPForwarder } from 'lib/xchain-helpers/src/forwarders/CCTPForwarder.s
 
 import { CrosschainPayload, IPayload } from './CrosschainPayload.sol';
 
-contract AvalancheCrosschainPayload is CrosschainPayload {
+contract AvalancheCCTPCrosschainPayload is CrosschainPayload {
 
     constructor(IPayload _targetPayload, address _bridgeReceiver) CrosschainPayload(_targetPayload, _bridgeReceiver) {}
 

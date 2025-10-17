@@ -6,9 +6,9 @@ import './CrosschainTestBase.sol';
 import { CCTPBridgeTesting } from 'lib/xchain-helpers/src/testing/bridges/CCTPBridgeTesting.sol';
 import { CCTPReceiver }      from 'lib/xchain-helpers/src/receivers/CCTPReceiver.sol';
 
-import { AvalancheCrosschainPayload } from './payloads/AvalancheCrosschainPayload.sol';
+import { AvalancheCCTPCrosschainPayload } from './payloads/AvalancheCCTPCrosschainPayload.sol';
 
-contract AvalancheCrosschainTest is CrosschainTestBase {
+contract AvalancheCCTPCrosschainTest is CrosschainTestBase {
 
     using DomainHelpers     for *;
     using CCTPBridgeTesting for *;
@@ -16,7 +16,7 @@ contract AvalancheCrosschainTest is CrosschainTestBase {
     function deployCrosschainPayload(IPayload targetPayload, address bridgeReceiver)
         internal override returns (IPayload)
     {
-        return IPayload(new AvalancheCrosschainPayload(targetPayload, bridgeReceiver));
+        return IPayload(new AvalancheCCTPCrosschainPayload(targetPayload, bridgeReceiver));
     }
 
     function setupDomain() internal override {
