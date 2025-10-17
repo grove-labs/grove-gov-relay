@@ -44,7 +44,7 @@ contract LZCrosschainTest is CrosschainTestBase {
         }));
 
         mainnet.selectFork();
-        vm.deal(L1_SPARK_PROXY, 0.01 ether);
+        vm.deal(L1_GROVE_PROXY, 0.01 ether);
     }
 
     function relayMessagesAcrossBridge() internal override {
