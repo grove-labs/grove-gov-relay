@@ -255,3 +255,33 @@ contract DeployPlasmaExecutor is Script {
 }
 
 
+contract DeployMonadExecutor is Script {
+
+    function run() public {
+        vm.createSelectFork(vm.envString("MONAD_RPC_URL"));
+
+        Verify.verifyChainId(143);
+
+        vm.startBroadcast();
+
+        address executor = Deploy.deployExecutor(0, 7 days);
+        address receiver = Deploy.deployLZReceiver({
+            destinationEndpoint : LZForwarder.ENDPOINT_MONAD,
+            srcEid              : LZForwarder.ENDPOINT_ID_ETHEREUM,
+            sourceAuthority     : Ethereum.GROVE_PROXY,
+            executor            : executor,
+            delegate            : address(1),
+            owner               : address(1)
+        });
+
+        console.log("executor deployed at:", executor);
+        console.log("receiver deployed at:", receiver);
+
+        Deploy.setUpExecutorPermissions(executor, receiver, msg.sender);
+
+        vm.stopBroadcast();
+    }
+
+}
+
+

@@ -5,3 +5,4 @@ deploy-unichain     :; forge script script/Deploy.s.sol:DeployUnichainExecutor -
 deploy-avalanche    :; forge script script/Deploy.s.sol:DeployAvalancheExecutor --sender ${ETH_FROM} --broadcast --verify
 deploy-plume        :; forge script script/Deploy.s.sol:DeployPlumeExecutor --sender ${ETH_FROM} --broadcast --verify
 deploy-plasma       :; forge script script/Deploy.s.sol:DeployPlasmaExecutor --sender ${ETH_FROM} --broadcast --verify
+deploy-monad        :; forge script script/Deploy.s.sol:DeployMonadExecutor --sender ${ETH_FROM} --broadcast --verify
