@@ -33,6 +33,10 @@ contract LZCrosschainTest is CrosschainTestBase {
             remote
         );
 
+        address[] memory requiredDVNs = new address[](2);
+        requiredDVNs[0] = LZForwarder.LAYER_ZERO_DVN_AVALANCHE;
+        requiredDVNs[1] = LZForwarder.NETHERMIND_DVN_AVALANCHE;
+
         remote.selectFork();
         bridgeReceiver = address(new LZReceiver({
             _destinationEndpoint : LZForwarder.ENDPOINT_AVALANCHE,
@@ -40,7 +44,8 @@ contract LZCrosschainTest is CrosschainTestBase {
             _sourceAuthority     : bytes32(uint256(uint160(defaultL2BridgeExecutorArgs.ethereumGovernanceExecutor))),
             _target              : vm.computeCreateAddress(address(this), 3),
             _delegate            : address(1),
-            _owner               : address(1)
+            _owner               : address(1),
+            _requiredDVNs        : requiredDVNs
         }));
 
         mainnet.selectFork();

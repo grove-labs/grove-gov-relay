@@ -35,12 +35,13 @@ library Deploy {
     }
 
     function deployLZReceiver(
-        address destinationEndpoint,
-        uint32  srcEid,
-        address sourceAuthority,
-        address executor,
-        address delegate,
-        address owner
+        address   destinationEndpoint,
+        uint32    srcEid,
+        address   sourceAuthority,
+        address   executor,
+        address   delegate,
+        address   owner,
+        address[] memory requiredDVNs
     )
         internal returns (address receiver)
     {
@@ -50,7 +51,8 @@ library Deploy {
             _sourceAuthority     : bytes32(uint256(uint160(sourceAuthority))),
             _target              : executor,
             _delegate            : delegate,
-            _owner               : owner
+            _owner               : owner,
+            _requiredDVNs        : requiredDVNs
         }));
     }
 

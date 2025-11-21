@@ -232,6 +232,10 @@ contract DeployPlasmaExecutor is Script {
 
         Verify.verifyChainId(9745);
 
+        address[] memory requiredDVNs = new address[](2);
+        requiredDVNs[0] = LZForwarder.LAYER_ZERO_DVN_PLASMA;
+        requiredDVNs[1] = LZForwarder.NETHERMIND_DVN_PLASMA;
+
         vm.startBroadcast();
 
         address executor = Deploy.deployExecutor(0, 7 days);
@@ -241,7 +245,43 @@ contract DeployPlasmaExecutor is Script {
             sourceAuthority     : Ethereum.GROVE_PROXY,
             executor            : executor,
             delegate            : address(1),
-            owner               : address(1)
+            owner               : address(1),
+            requiredDVNs        : requiredDVNs
+        });
+
+        console.log("executor deployed at:", executor);
+        console.log("receiver deployed at:", receiver);
+
+        Deploy.setUpExecutorPermissions(executor, receiver, msg.sender);
+
+        vm.stopBroadcast();
+    }
+
+}
+
+
+contract DeployMonadExecutor is Script {
+
+    function run() public {
+        vm.createSelectFork(vm.envString("MONAD_RPC_URL"));
+
+        Verify.verifyChainId(143);
+
+        address[] memory requiredDVNs = new address[](2);
+        requiredDVNs[0] = LZForwarder.LAYER_ZERO_DVN_MONAD;
+        requiredDVNs[1] = LZForwarder.NETHERMIND_DVN_MONAD;
+
+        vm.startBroadcast();
+
+        address executor = Deploy.deployExecutor(0, 7 days);
+        address receiver = Deploy.deployLZReceiver({
+            destinationEndpoint : LZForwarder.ENDPOINT_MONAD,
+            srcEid              : LZForwarder.ENDPOINT_ID_ETHEREUM,
+            sourceAuthority     : Ethereum.GROVE_PROXY,
+            executor            : executor,
+            delegate            : address(1),
+            owner               : address(1),
+            requiredDVNs        : requiredDVNs
         });
 
         console.log("executor deployed at:", executor);
