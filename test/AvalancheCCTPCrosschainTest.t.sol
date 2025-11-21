@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import './CrosschainTestBase.sol';
 
 import { CCTPBridgeTesting } from 'lib/xchain-helpers/src/testing/bridges/CCTPBridgeTesting.sol';
+import { CCTPForwarder }     from 'lib/xchain-helpers/src/forwarders/CCTPForwarder.sol';
 import { CCTPReceiver }      from 'lib/xchain-helpers/src/receivers/CCTPReceiver.sol';
 
 import { AvalancheCCTPCrosschainPayload } from './payloads/AvalancheCCTPCrosschainPayload.sol';
@@ -29,7 +30,7 @@ contract AvalancheCCTPCrosschainTest is CrosschainTestBase {
         remote.selectFork();
         bridgeReceiver = address(new CCTPReceiver(
             CCTPBridgeTesting.getCircleMessengerFromChainAlias(bridge.destination.chain.chainAlias),
-            uint32(0),  // Ethereum Circle domain id
+            CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
             bytes32(uint256(uint160(defaultL2BridgeExecutorArgs.ethereumGovernanceExecutor))),
             vm.computeCreateAddress(address(this), 3)
         ));
