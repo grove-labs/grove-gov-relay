@@ -3,11 +3,18 @@ pragma solidity ^0.8.0;
 
 import { Ethereum } from "lib/grove-address-registry/src/Ethereum.sol";
 
+import { LZForwarder } from "lib/xchain-helpers/src/forwarders/LZForwarder.sol";
+
 import { ArbitrumReceiver } from "lib/xchain-helpers/src/receivers/ArbitrumReceiver.sol";
 import { CCTPReceiver }     from "lib/xchain-helpers/src/receivers/CCTPReceiver.sol";
+import { LZReceiver }       from "lib/xchain-helpers/src/receivers/LZReceiver.sol";
 import { OptimismReceiver } from "lib/xchain-helpers/src/receivers/OptimismReceiver.sol";
 
 import { Executor } from "src/Executor.sol";
+
+interface ILayerZeroEndpointV2Like {
+    function delegates(address sender) external view returns (address);
+}
 
 library Verify {
 
@@ -45,6 +52,15 @@ library Verify {
     ) internal view {
         verifyExecutorDeployment(deployment, params);
         verifyCctpReceiverDeployment(deployment.receiver, deployment.executor, cctpMessageTransmitter);
+    }
+
+    function verifyLayerZeroDeployment(
+        Deployment     memory deployment,
+        ExecutorParams memory params,
+        address        endpoint
+    ) internal view {
+        verifyExecutorDeployment(deployment, params);
+        verifyLayerZeroReceiverDeployment(deployment.receiver, deployment.executor, endpoint);
     }
 
     function verifyExecutorDeployment(
@@ -116,6 +132,35 @@ library Verify {
 
         // Target has to be the executor
         require(__receiver.target() == executor, "Verify/incorrect-target");
+    }
+
+    function verifyLayerZeroReceiverDeployment(
+        address receiver,
+        address executor,
+        address endpoint
+    ) internal view {
+        LZReceiver __receiver = LZReceiver(receiver);
+
+        // Receiver's destination endpoint has to be a proper endpoint
+        require(address(__receiver.endpoint()) == endpoint, "Verify/incorrect-destination-endpoint");
+
+        // Receiver's source EID has to be the Ethereum Mainnet EID
+        require(__receiver.srcEid() == LZForwarder.ENDPOINT_ID_ETHEREUM, "Verify/incorrect-src-eid");
+
+        // Receiver's source authority has to be the Ethereum Mainnet Grove Proxy
+        require(__receiver.sourceAuthority() == bytes32(uint256(uint160(Ethereum.GROVE_PROXY))), "Verify/incorrect-source-authority");
+
+        // Receiver's target has to be the executor
+        require(__receiver.target() == executor, "Verify/incorrect-target");
+
+        // Delegate has to be set to blank, non-zero address placeholder
+        require(
+            ILayerZeroEndpointV2Like(address(__receiver.endpoint())).delegates(address(__receiver)) == address(1),
+            "Verify/incorrect-delegate"
+        );
+
+        // Owner has to be set to blank, non-zero address placeholder
+        require(__receiver.owner() == address(1), "Verify/incorrect-owner");
     }
 
     function verifyChainId(uint256 chainId) internal view {

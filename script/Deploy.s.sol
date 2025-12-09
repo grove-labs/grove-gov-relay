@@ -35,13 +35,13 @@ contract DeployArbitrumOneExecutor is Script {
 
         Verify.verifyArbitrumDeployment(
             Verify.Deployment({
-                executor: executor,
-                receiver: receiver,
-                deployer: msg.sender
+                executor : executor,
+                receiver : receiver,
+                deployer : msg.sender
             }),
             Verify.ExecutorParams({
-                delay:       0,
-                gracePeriod: 7 days
+                delay       : 0,
+                gracePeriod : 7 days
             })
         );
 
@@ -70,13 +70,13 @@ contract DeployBaseExecutor is Script {
 
         Verify.verifyOptimismDeployment(
             Verify.Deployment({
-                executor: executor,
-                receiver: receiver,
-                deployer: msg.sender
+                executor : executor,
+                receiver : receiver,
+                deployer : msg.sender
             }),
             Verify.ExecutorParams({
-                delay:       0,
-                gracePeriod: 7 days
+                delay       : 0,
+                gracePeriod : 7 days
             })
         );
     }
@@ -104,13 +104,13 @@ contract DeployOptimismExecutor is Script {
 
         Verify.verifyOptimismDeployment(
             Verify.Deployment({
-                executor: executor,
-                receiver: receiver,
-                deployer: msg.sender
+                executor : executor,
+                receiver : receiver,
+                deployer : msg.sender
             }),
             Verify.ExecutorParams({
-                delay:       0,
-                gracePeriod: 7 days
+                delay       : 0,
+                gracePeriod : 7 days
             })
         );
     }
@@ -138,13 +138,13 @@ contract DeployUnichainExecutor is Script {
 
         Verify.verifyOptimismDeployment(
             Verify.Deployment({
-                executor: executor,
-                receiver: receiver,
-                deployer: msg.sender
+                executor : executor,
+                receiver : receiver,
+                deployer : msg.sender
             }),
             Verify.ExecutorParams({
-                delay:       0,
-                gracePeriod: 7 days
+                delay       : 0,
+                gracePeriod : 7 days
             })
         );
     }
@@ -177,13 +177,13 @@ contract DeployAvalancheExecutor is Script {
 
         Verify.verifyCctpDeployment(
             Verify.Deployment({
-                executor: executor,
-                receiver: receiver,
-                deployer: msg.sender
+                executor : executor,
+                receiver : receiver,
+                deployer : msg.sender
             }),
             Verify.ExecutorParams({
-                delay:       0,
-                gracePeriod: 7 days
+                delay       : 0,
+                gracePeriod : 7 days
             }),
             CCTPForwarder.MESSAGE_TRANSMITTER_CIRCLE_AVALANCHE
         );
@@ -212,13 +212,13 @@ contract DeployPlumeExecutor is Script {
 
         Verify.verifyArbitrumDeployment(
             Verify.Deployment({
-                executor: executor,
-                receiver: receiver,
-                deployer: msg.sender
+                executor : executor,
+                receiver : receiver,
+                deployer : msg.sender
             }),
             Verify.ExecutorParams({
-                delay:       0,
-                gracePeriod: 7 days
+                delay       : 0,
+                gracePeriod : 7 days
             })
         );
     }
@@ -236,11 +236,13 @@ contract DeployPlasmaExecutor is Script {
         requiredDVNs[0] = LZForwarder.LAYER_ZERO_DVN_PLASMA;
         requiredDVNs[1] = LZForwarder.NETHERMIND_DVN_PLASMA;
 
+        address localEndpoint = LZForwarder.ENDPOINT_PLASMA;
+
         vm.startBroadcast();
 
         address executor = Deploy.deployExecutor(0, 7 days);
         address receiver = Deploy.deployLZReceiver({
-            destinationEndpoint : LZForwarder.ENDPOINT_PLASMA,
+            destinationEndpoint : localEndpoint,
             srcEid              : LZForwarder.ENDPOINT_ID_ETHEREUM,
             sourceAuthority     : Ethereum.GROVE_PROXY,
             executor            : executor,
@@ -255,6 +257,19 @@ contract DeployPlasmaExecutor is Script {
         Deploy.setUpExecutorPermissions(executor, receiver, msg.sender);
 
         vm.stopBroadcast();
+
+        Verify.verifyLayerZeroDeployment(
+            Verify.Deployment({
+                executor : executor,
+                receiver : receiver,
+                deployer : msg.sender
+            }),
+            Verify.ExecutorParams({
+                delay       : 0,
+                gracePeriod : 7 days
+            }),
+            localEndpoint
+        );
     }
 
 }
@@ -271,11 +286,13 @@ contract DeployMonadExecutor is Script {
         requiredDVNs[0] = LZForwarder.LAYER_ZERO_DVN_MONAD;
         requiredDVNs[1] = LZForwarder.NETHERMIND_DVN_MONAD;
 
+        address localEndpoint = LZForwarder.ENDPOINT_MONAD;
+
         vm.startBroadcast();
 
         address executor = Deploy.deployExecutor(0, 7 days);
         address receiver = Deploy.deployLZReceiver({
-            destinationEndpoint : LZForwarder.ENDPOINT_MONAD,
+            destinationEndpoint : localEndpoint,
             srcEid              : LZForwarder.ENDPOINT_ID_ETHEREUM,
             sourceAuthority     : Ethereum.GROVE_PROXY,
             executor            : executor,
@@ -290,6 +307,19 @@ contract DeployMonadExecutor is Script {
         Deploy.setUpExecutorPermissions(executor, receiver, msg.sender);
 
         vm.stopBroadcast();
+
+        Verify.verifyLayerZeroDeployment(
+            Verify.Deployment({
+                executor : executor,
+                receiver : receiver,
+                deployer : msg.sender
+            }),
+            Verify.ExecutorParams({
+                delay       : 0,
+                gracePeriod : 7 days
+            }),
+            localEndpoint
+        );
     }
 
 }
