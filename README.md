@@ -7,6 +7,12 @@ The codebase uses [Foundry](https://github.com/foundry-rs/foundry) as the develo
 ### 🚦 Executors
 Executors serve as admins of the bridged domain instances of the protocol. <br>They are responsible for storying the queue of proposals passed from the host domain governance and their execution. <br> They manage bridged domain protocol instance using standard payload pattern.
 
+### 🏗️ Architecture & Usage
+Example flow with a crosschain spell targeting two foreign domains (Optimism and Arbitrum)
+
+![Gov Relay Architecture](diagram.png)
+
+
 ## ⚖️ Licensing
 
 This repository is a fork of the sparkdotfi/spark-gov-relay. All code in this repository is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0), which requires that modifications to the code must be made available under the same license. See the [LICENSE](LICENSE) file for more details.
