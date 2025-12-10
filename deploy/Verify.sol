@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import { UlnConfig } from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/UlnBase.sol";
+
 import { Ethereum } from "lib/grove-address-registry/src/Ethereum.sol";
 
 import { LZForwarder } from "lib/xchain-helpers/src/forwarders/LZForwarder.sol";
@@ -55,12 +57,13 @@ library Verify {
     }
 
     function verifyLayerZeroDeployment(
-        Deployment     memory deployment,
-        ExecutorParams memory params,
-        address        endpoint
+        Deployment                memory deployment,
+        ExecutorParams            memory params,
+        address                   endpoint,
+        LZReceiver.UlConfigParams memory ulnConfigParams
     ) internal view {
         verifyExecutorDeployment(deployment, params);
-        verifyLayerZeroReceiverDeployment(deployment.receiver, deployment.executor, endpoint);
+        verifyLayerZeroReceiverDeployment(deployment.receiver, deployment.executor, endpoint, ulnConfigParams);
     }
 
     function verifyExecutorDeployment(
@@ -137,7 +140,8 @@ library Verify {
     function verifyLayerZeroReceiverDeployment(
         address receiver,
         address executor,
-        address endpoint
+        address endpoint,
+        LZReceiver.UlConfigParams memory ulnConfigParams
     ) internal view {
         LZReceiver __receiver = LZReceiver(receiver);
 
@@ -161,6 +165,38 @@ library Verify {
 
         // Owner has to be set to blank, non-zero address placeholder
         require(__receiver.owner() == address(1), "Verify/incorrect-owner");
+
+        // Get the receive library to query the config
+        (address receiveLib, ) = __receiver.endpoint().getReceiveLibrary(
+            address(__receiver),
+            __receiver.srcEid()
+        );
+
+        // Get the UlnConfig that was set via endpoint
+        bytes memory configBytes = __receiver.endpoint().getConfig(
+            address(__receiver),
+            receiveLib,
+            __receiver.srcEid(),
+            2  // configType 2 is for UlnConfig
+        );
+
+        UlnConfig memory config = abi.decode(configBytes, (UlnConfig));
+
+        // Verify the config was set correctly
+        require(config.confirmations        == ulnConfigParams.confirmations,        "Verify/incorrect-confirmations");
+        require(config.requiredDVNCount     == ulnConfigParams.requiredDVNs.length,  "Verify/incorrect-requiredDVNCount");
+        require(config.optionalDVNCount     == ulnConfigParams.optionalDVNs.length,  "Verify/incorrect-optionalDVNCount");
+        require(config.optionalDVNThreshold == ulnConfigParams.optionalDVNThreshold, "Verify/incorrect-optionalDVNThreshold");
+        require(config.requiredDVNs.length  == ulnConfigParams.requiredDVNs.length,  "Verify/incorrect-requiredDVNs-length");
+        require(config.optionalDVNs.length  == ulnConfigParams.optionalDVNs.length,  "Verify/incorrect-optionalDVNs-length");
+
+        for (uint256 i = 0; i < ulnConfigParams.requiredDVNs.length; i++) {
+            require(config.requiredDVNs[i] == ulnConfigParams.requiredDVNs[i], "Verify/incorrect-requiredDVN");
+        }
+
+        for (uint256 i = 0; i < ulnConfigParams.optionalDVNs.length; i++) {
+            require(config.optionalDVNs[i] == ulnConfigParams.optionalDVNs[i], "Verify/incorrect-optionalDVN");
+        }
     }
 
     function verifyChainId(uint256 chainId) internal view {

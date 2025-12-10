@@ -277,7 +277,8 @@ contract DeployPlasmaExecutor is Script {
                 delay:       0,
                 gracePeriod: 7 days
             }),
-            localEndpoint
+            localEndpoint,
+            ulnConfigParams
         );
     }
 
@@ -334,7 +335,8 @@ contract DeployMonadExecutor is Script {
                 delay:       0,
                 gracePeriod: 7 days
             }),
-            localEndpoint
+            localEndpoint,
+            ulnConfigParams
         );
     }
 
