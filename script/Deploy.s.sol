@@ -8,6 +8,8 @@ import { Ethereum } from "lib/grove-address-registry/src/Ethereum.sol";
 import { CCTPForwarder } from "lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
 import { LZForwarder }   from "lib/xchain-helpers/src/forwarders/LZForwarder.sol";
 
+import { LZReceiver } from "lib/xchain-helpers/src/receivers/LZReceiver.sol";
+
 import { Script } from 'forge-std/Script.sol';
 
 import { Deploy } from "../deploy/Deploy.sol";
@@ -238,6 +240,13 @@ contract DeployPlasmaExecutor is Script {
 
         address localEndpoint = LZForwarder.ENDPOINT_PLASMA;
 
+        LZReceiver.UlConfigParams memory ulnConfigParams = LZReceiver.UlConfigParams({
+            confirmations        : 15,
+            requiredDVNs         : requiredDVNs,
+            optionalDVNs         : new address[](0),
+            optionalDVNThreshold : 0
+        });
+
         vm.startBroadcast();
 
         address executor = Deploy.deployExecutor(0, 7 days);
@@ -248,7 +257,7 @@ contract DeployPlasmaExecutor is Script {
             executor            : executor,
             delegate            : address(1),
             owner               : address(1),
-            requiredDVNs        : requiredDVNs
+            ulnConfigParams     : ulnConfigParams
         });
 
         console.log("executor deployed at:", executor);
@@ -268,7 +277,8 @@ contract DeployPlasmaExecutor is Script {
                 delay:       0,
                 gracePeriod: 7 days
             }),
-            localEndpoint
+            localEndpoint,
+            ulnConfigParams
         );
     }
 
@@ -288,6 +298,13 @@ contract DeployMonadExecutor is Script {
 
         address localEndpoint = LZForwarder.ENDPOINT_MONAD;
 
+        LZReceiver.UlConfigParams memory ulnConfigParams = LZReceiver.UlConfigParams({
+            confirmations        : 15,
+            requiredDVNs         : requiredDVNs,
+            optionalDVNs         : new address[](0),
+            optionalDVNThreshold : 0
+        });
+
         vm.startBroadcast();
 
         address executor = Deploy.deployExecutor(0, 7 days);
@@ -298,7 +315,7 @@ contract DeployMonadExecutor is Script {
             executor            : executor,
             delegate            : address(1),
             owner               : address(1),
-            requiredDVNs        : requiredDVNs
+            ulnConfigParams     : ulnConfigParams
         });
 
         console.log("executor deployed at:", executor);
@@ -318,7 +335,8 @@ contract DeployMonadExecutor is Script {
                 delay:       0,
                 gracePeriod: 7 days
             }),
-            localEndpoint
+            localEndpoint,
+            ulnConfigParams
         );
     }
 

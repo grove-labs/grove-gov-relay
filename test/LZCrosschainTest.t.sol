@@ -37,6 +37,13 @@ contract LZCrosschainTest is CrosschainTestBase {
         requiredDVNs[0] = LZForwarder.LAYER_ZERO_DVN_AVALANCHE;
         requiredDVNs[1] = LZForwarder.NETHERMIND_DVN_AVALANCHE;
 
+        LZReceiver.UlConfigParams memory ulnConfigParams = LZReceiver.UlConfigParams({
+            confirmations        : 15,
+            requiredDVNs         : requiredDVNs,
+            optionalDVNs         : new address[](0),
+            optionalDVNThreshold : 0
+        });
+
         remote.selectFork();
         bridgeReceiver = address(new LZReceiver({
             _destinationEndpoint : LZForwarder.ENDPOINT_AVALANCHE,
@@ -45,7 +52,7 @@ contract LZCrosschainTest is CrosschainTestBase {
             _target              : vm.computeCreateAddress(address(this), 3),
             _delegate            : address(1),
             _owner               : address(1),
-            _requiredDVNs        : requiredDVNs
+            _ulnConfigParams     : ulnConfigParams
         }));
 
         mainnet.selectFork();
