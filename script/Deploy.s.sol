@@ -35,13 +35,13 @@ contract DeployArbitrumOneExecutor is Script {
 
         Verify.verifyArbitrumDeployment(
             Verify.Deployment({
-                executor : executor,
-                receiver : receiver,
-                deployer : msg.sender
+                executor: executor,
+                receiver: receiver,
+                deployer: msg.sender
             }),
             Verify.ExecutorParams({
-                delay       : 0,
-                gracePeriod : 7 days
+                delay:       0,
+                gracePeriod: 7 days
             })
         );
 
@@ -70,13 +70,13 @@ contract DeployBaseExecutor is Script {
 
         Verify.verifyOptimismDeployment(
             Verify.Deployment({
-                executor : executor,
-                receiver : receiver,
-                deployer : msg.sender
+                executor: executor,
+                receiver: receiver,
+                deployer: msg.sender
             }),
             Verify.ExecutorParams({
-                delay       : 0,
-                gracePeriod : 7 days
+                delay:       0,
+                gracePeriod: 7 days
             })
         );
     }
@@ -104,13 +104,13 @@ contract DeployOptimismExecutor is Script {
 
         Verify.verifyOptimismDeployment(
             Verify.Deployment({
-                executor : executor,
-                receiver : receiver,
-                deployer : msg.sender
+                executor: executor,
+                receiver: receiver,
+                deployer: msg.sender
             }),
             Verify.ExecutorParams({
-                delay       : 0,
-                gracePeriod : 7 days
+                delay:       0,
+                gracePeriod: 7 days
             })
         );
     }
@@ -138,13 +138,13 @@ contract DeployUnichainExecutor is Script {
 
         Verify.verifyOptimismDeployment(
             Verify.Deployment({
-                executor : executor,
-                receiver : receiver,
-                deployer : msg.sender
+                executor: executor,
+                receiver: receiver,
+                deployer: msg.sender
             }),
             Verify.ExecutorParams({
-                delay       : 0,
-                gracePeriod : 7 days
+                delay:       0,
+                gracePeriod: 7 days
             })
         );
     }
@@ -177,13 +177,13 @@ contract DeployAvalancheExecutor is Script {
 
         Verify.verifyCctpDeployment(
             Verify.Deployment({
-                executor : executor,
-                receiver : receiver,
-                deployer : msg.sender
+                executor: executor,
+                receiver: receiver,
+                deployer: msg.sender
             }),
             Verify.ExecutorParams({
-                delay       : 0,
-                gracePeriod : 7 days
+                delay:       0,
+                gracePeriod: 7 days
             }),
             CCTPForwarder.MESSAGE_TRANSMITTER_CIRCLE_AVALANCHE
         );
@@ -212,13 +212,13 @@ contract DeployPlumeExecutor is Script {
 
         Verify.verifyArbitrumDeployment(
             Verify.Deployment({
-                executor : executor,
-                receiver : receiver,
-                deployer : msg.sender
+                executor: executor,
+                receiver: receiver,
+                deployer: msg.sender
             }),
             Verify.ExecutorParams({
-                delay       : 0,
-                gracePeriod : 7 days
+                delay:       0,
+                gracePeriod: 7 days
             })
         );
     }
@@ -260,13 +260,13 @@ contract DeployPlasmaExecutor is Script {
 
         Verify.verifyLayerZeroDeployment(
             Verify.Deployment({
-                executor : executor,
-                receiver : receiver,
-                deployer : msg.sender
+                executor: executor,
+                receiver: receiver,
+                deployer: msg.sender
             }),
             Verify.ExecutorParams({
-                delay       : 0,
-                gracePeriod : 7 days
+                delay:       0,
+                gracePeriod: 7 days
             }),
             localEndpoint
         );
@@ -310,13 +310,13 @@ contract DeployMonadExecutor is Script {
 
         Verify.verifyLayerZeroDeployment(
             Verify.Deployment({
-                executor : executor,
-                receiver : receiver,
-                deployer : msg.sender
+                executor: executor,
+                receiver: receiver,
+                deployer: msg.sender
             }),
             Verify.ExecutorParams({
-                delay       : 0,
-                gracePeriod : 7 days
+                delay:       0,
+                gracePeriod: 7 days
             }),
             localEndpoint
         );
