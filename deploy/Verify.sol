@@ -161,7 +161,7 @@ library Verify {
         require(__receiver.srcEid() == LZForwarder.ENDPOINT_ID_ETHEREUM, "Verify/incorrect-src-eid");
 
         // Receiver's source authority has to be the Ethereum Mainnet Grove Proxy
-        require(__receiver.sourceAuthority() == bytes32(uint256(uint160(0x3146C3DDef7C00D3DcC3cfd33041d0d677091977))), "Verify/incorrect-source-authority");
+        require(__receiver.sourceAuthority() == bytes32(uint256(uint160(Ethereum.GROVE_PROXY))), "Verify/incorrect-source-authority");
 
         // Receiver's target has to be the executor
         require(__receiver.target() == executor, "Verify/incorrect-target");
