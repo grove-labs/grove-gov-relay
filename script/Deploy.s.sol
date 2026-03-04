@@ -3,7 +3,8 @@ pragma solidity ^0.8.0;
 
 import { console } from "forge-std/console.sol";
 
-import { Ethereum } from "lib/grove-address-registry/src/Ethereum.sol";
+import { Avalanche } from "lib/grove-address-registry/src/Avalanche.sol";
+import { Ethereum }  from "lib/grove-address-registry/src/Ethereum.sol";
 
 import { CCTPForwarder } from "lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
 import { LZForwarder }   from "lib/xchain-helpers/src/forwarders/LZForwarder.sol";
@@ -189,6 +190,49 @@ contract DeployAvalancheExecutor is Script {
             }),
             CCTPForwarder.MESSAGE_TRANSMITTER_CIRCLE_AVALANCHE
         );
+    }
+
+}
+
+contract DeployAvalancheLZReceiver is Script {
+
+    function run() public {
+        vm.createSelectFork(getChain("avalanche").rpcUrl);
+
+        Verify.verifyChainId(43114);
+
+        address executor = Avalanche.GROVE_EXECUTOR;
+
+        address[] memory requiredDVNs = new address[](2);
+        requiredDVNs[0] = LZForwarder.LAYER_ZERO_DVN_AVALANCHE;
+        requiredDVNs[1] = LZForwarder.NETHERMIND_DVN_AVALANCHE;
+
+        address localEndpoint = LZForwarder.ENDPOINT_AVALANCHE;
+
+        LZReceiver.UlConfigParams memory ulnConfigParams = LZReceiver.UlConfigParams({
+            confirmations        : 15,
+            requiredDVNs         : requiredDVNs,
+            optionalDVNs         : new address[](0),
+            optionalDVNThreshold : 0
+        });
+
+        vm.startBroadcast();
+
+        address receiver = Deploy.deployLZReceiver({
+            destinationEndpoint : localEndpoint,
+            srcEid              : LZForwarder.ENDPOINT_ID_ETHEREUM,
+            sourceAuthority     : Ethereum.GROVE_PROXY,
+            executor            : executor,
+            delegate            : address(1),
+            owner               : address(1),
+            ulnConfigParams     : ulnConfigParams
+        });
+
+        vm.stopBroadcast();
+
+        console.log("LZ receiver deployed at:", receiver);
+
+        Verify.verifyLayerZeroReceiverOnly(receiver, executor, localEndpoint, ulnConfigParams);
     }
 
 }
