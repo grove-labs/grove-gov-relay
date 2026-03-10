@@ -66,6 +66,15 @@ library Verify {
         verifyLayerZeroReceiverDeployment(deployment.receiver, deployment.executor, endpoint, ulnConfigParams);
     }
 
+    function verifyLayerZeroReceiverOnly(
+        address                   receiver,
+        address                   executor,
+        address                   endpoint,
+        LZReceiver.UlConfigParams memory ulnConfigParams
+    ) internal view {
+        verifyLayerZeroReceiverDeployment(receiver, executor, endpoint, ulnConfigParams);
+    }
+
     function verifyExecutorDeployment(
         Deployment     memory deployment,
         ExecutorParams memory params
