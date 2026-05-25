@@ -1,0 +1,12 @@
+{
+  "executor": {
+    "address": "0x0000000000000000000000000000000000000000",
+    "delay": 0,
+    "gracePeriod": 604800
+  },
+  "receiver": {
+    "amb": "0x75Df5AF045d91108662D8080fD1FEFAd6aA0bb59",
+    "sourceChainId": 1,
+    "sourceAuthority": "0x1369f7b2b38c76B6478c0f0E66D94923421891Ba"
+  }
+}

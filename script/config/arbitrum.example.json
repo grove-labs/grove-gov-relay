@@ -1,0 +1,10 @@
+{
+  "executor": {
+    "address": "0x0000000000000000000000000000000000000000",
+    "delay": 0,
+    "gracePeriod": 604800
+  },
+  "receiver": {
+    "l1Authority": "0x1369f7b2b38c76B6478c0f0E66D94923421891Ba"
+  }
+}

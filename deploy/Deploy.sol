@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.0;
 
+import { AMBReceiver }      from 'lib/xchain-helpers/src/receivers/AMBReceiver.sol';
 import { ArbitrumReceiver } from 'lib/xchain-helpers/src/receivers/ArbitrumReceiver.sol';
 import { LZReceiver }       from 'lib/xchain-helpers/src/receivers/LZReceiver.sol';
 import { OptimismReceiver } from 'lib/xchain-helpers/src/receivers/OptimismReceiver.sol';
 import { CCTPReceiver }     from 'lib/xchain-helpers/src/receivers/CCTPReceiver.sol';
+import { CCTPv2Receiver }   from 'lib/xchain-helpers/src/receivers/CCTPv2Receiver.sol';
 
 import { Executor } from 'src/Executor.sol';
 
@@ -14,6 +16,12 @@ library Deploy {
         internal returns (address executor)
     {
         executor = address(new Executor(delay, gracePeriod));
+    }
+
+    function deployAMBReceiver(address amb, bytes32 sourceChainId, address sourceAuthority, address executor)
+        internal returns (address receiver)
+    {
+        receiver = address(new AMBReceiver(amb, sourceChainId, sourceAuthority, executor));
     }
 
     function deployArbitrumReceiver(address l1Authority, address executor)
@@ -32,6 +40,12 @@ library Deploy {
         internal returns (address receiver)
     {
         receiver = address(new CCTPReceiver(destinationMessenger, sourceDomainId, sourceAuthority, executor));
+    }
+
+    function deployCCTPv2Receiver(address destinationMessenger, uint32 sourceDomainId, bytes32 sourceAuthority, address executor)
+        internal returns (address receiver)
+    {
+        receiver = address(new CCTPv2Receiver(destinationMessenger, sourceDomainId, sourceAuthority, executor));
     }
 
     function deployLZReceiver(
