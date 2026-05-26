@@ -4,9 +4,13 @@ pragma solidity ^0.8.0;
 import { console } from "forge-std/console.sol";
 import { Script }  from "forge-std/Script.sol";
 
-import { Deploy }        from "../deploy/Deploy.sol";
-import { DeployConfig }  from "../deploy/DeployConfig.sol";
-import { Verify }        from "../deploy/Verify.sol";
+import { AMBReceiver } from "lib/xchain-helpers/src/receivers/AMBReceiver.sol";
+
+import { DeployConfig }        from "../deploy/DeployConfig.sol";
+import { Verify }              from "../deploy/Verify.sol";
+import { VerificationHelpers } from "../deploy/VerificationHelpers.sol";
+
+import { Executor } from "src/Executor.sol";
 
 /**
  * @notice Deploys an Executor and an AMBReceiver on the chain reachable through `RPC_URL`.
@@ -39,29 +43,30 @@ contract DeployAMBFull is Script {
         DeployConfig.ExecutorParams    memory executorParams = DeployConfig.readExecutorParams(config);
         DeployConfig.AMBReceiverParams memory receiverParams = DeployConfig.readAMBReceiverParams(config);
 
-        DeployConfig.validateExecutorParams(executorParams, false);
-        DeployConfig.validateAMBReceiverParams(receiverParams);
+        VerificationHelpers.validateExecutorParams(executorParams, false);
+        VerificationHelpers.validateAMBReceiverParams(receiverParams);
 
         vm.startBroadcast();
 
-        address executor = Deploy.deployExecutor(executorParams.delay, executorParams.gracePeriod);
-        address receiver = Deploy.deployAMBReceiver({
-            amb             : receiverParams.amb,
-            sourceChainId   : receiverParams.sourceChainId,
-            sourceAuthority : receiverParams.sourceAuthority,
-            executor        : executor
-        });
+        Executor executor = new Executor(executorParams.delay, executorParams.gracePeriod);
+        address  receiver = address(new AMBReceiver({
+            _amb             : receiverParams.amb,
+            _sourceChainId   : receiverParams.sourceChainId,
+            _sourceAuthority : receiverParams.sourceAuthority,
+            _target          : address(executor)
+        }));
 
-        Deploy.setUpExecutorPermissions(executor, receiver, msg.sender);
+        executor.grantRole(executor.SUBMISSION_ROLE(),     receiver);
+        executor.revokeRole(executor.DEFAULT_ADMIN_ROLE(), msg.sender);
 
         vm.stopBroadcast();
 
-        console.log("executor deployed at:", executor);
+        console.log("executor deployed at:", address(executor));
         console.log("receiver deployed at:", receiver);
 
         Verify.verifyAMBDeployment({
             deployment : Verify.Deployment({
-                executor : executor,
+                executor : address(executor),
                 receiver : receiver,
                 deployer : msg.sender
             }),
@@ -102,19 +107,19 @@ contract DeployAMBReceiverOnly is Script {
         DeployConfig.ExecutorParams    memory executorParams = DeployConfig.readExecutorParams(config);
         DeployConfig.AMBReceiverParams memory receiverParams = DeployConfig.readAMBReceiverParams(config);
 
-        DeployConfig.validateExecutorParams(executorParams, true);
-        DeployConfig.validateAMBReceiverParams(receiverParams);
+        VerificationHelpers.validateExecutorParams(executorParams, true);
+        VerificationHelpers.validateAMBReceiverParams(receiverParams);
 
         address executor = executorParams.existingAddress;
 
         vm.startBroadcast();
 
-        address receiver = Deploy.deployAMBReceiver({
-            amb             : receiverParams.amb,
-            sourceChainId   : receiverParams.sourceChainId,
-            sourceAuthority : receiverParams.sourceAuthority,
-            executor        : executor
-        });
+        address receiver = address(new AMBReceiver({
+            _amb             : receiverParams.amb,
+            _sourceChainId   : receiverParams.sourceChainId,
+            _sourceAuthority : receiverParams.sourceAuthority,
+            _target          : executor
+        }));
 
         vm.stopBroadcast();
 

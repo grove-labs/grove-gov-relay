@@ -3,10 +3,6 @@ pragma solidity ^0.8.0;
 
 import { UlnConfig } from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/UlnBase.sol";
 
-import { Ethereum } from "lib/grove-address-registry/src/Ethereum.sol";
-
-import { LZForwarder } from "lib/xchain-helpers/src/forwarders/LZForwarder.sol";
-
 import { AMBReceiver }      from "lib/xchain-helpers/src/receivers/AMBReceiver.sol";
 import { ArbitrumReceiver } from "lib/xchain-helpers/src/receivers/ArbitrumReceiver.sol";
 import { CCTPReceiver }     from "lib/xchain-helpers/src/receivers/CCTPReceiver.sol";
@@ -31,50 +27,6 @@ library Verify {
     struct ExecutorParams {
         uint256 delay;
         uint256 gracePeriod;
-    }
-
-    function verifyArbitrumDeployment(
-        Deployment     memory deployment,
-        ExecutorParams memory params
-    ) internal view {
-        verifyExecutorDeployment(deployment, params);
-        verifyArbitrumReceiverDeployment(deployment.executor, deployment.receiver);
-    }
-
-    function verifyOptimismDeployment(
-        Deployment     memory deployment,
-        ExecutorParams memory params
-    ) internal view {
-        verifyExecutorDeployment(deployment, params);
-        verifyOptimismReceiverDeployment(deployment.executor, deployment.receiver);
-    }
-
-    function verifyCctpDeployment(
-        Deployment     memory deployment,
-        ExecutorParams memory params,
-        address               cctpMessageTransmitter
-    ) internal view {
-        verifyExecutorDeployment(deployment, params);
-        verifyCctpReceiverDeployment(deployment.receiver, deployment.executor, cctpMessageTransmitter);
-    }
-
-    function verifyLayerZeroDeployment(
-        Deployment                memory deployment,
-        ExecutorParams            memory params,
-        address                   endpoint,
-        LZReceiver.UlConfigParams memory ulnConfigParams
-    ) internal view {
-        verifyExecutorDeployment(deployment, params);
-        verifyLayerZeroReceiverDeployment(deployment.receiver, deployment.executor, endpoint, ulnConfigParams);
-    }
-
-    function verifyLayerZeroReceiverOnly(
-        address                   receiver,
-        address                   executor,
-        address                   endpoint,
-        LZReceiver.UlConfigParams memory ulnConfigParams
-    ) internal view {
-        verifyLayerZeroReceiverDeployment(receiver, executor, endpoint, ulnConfigParams);
     }
 
     function verifyExecutorDeployment(
@@ -102,138 +54,30 @@ library Verify {
         require(executor.hasRole(executor.SUBMISSION_ROLE(), deployment.receiver) == true, "Verify/receiver-does-not-have-executor-submission-role");
     }
 
-    function verifyArbitrumReceiverDeployment(
-        address executor,
-        address receiver
-    ) internal view {
-        ArbitrumReceiver __receiver = ArbitrumReceiver(receiver);
-
-        // L1 authority has to be the Ethereum Mainnet Grove Proxy
-        require(__receiver.l1Authority() == Ethereum.GROVE_PROXY, "Verify/incorrect-l1-authority");
-
-        // Target has to be the executor
-        require(__receiver.target() == executor, "Verify/incorrect-target");
-    }
-
-    function verifyCctpReceiverDeployment(
-        address receiver,
-        address executor,
-        address cctpMessageTransmitter
-    ) internal view {
-        CCTPReceiver __receiver = CCTPReceiver(receiver);
-
-        // Receiver's destination messenger has to be the local cctp messenger
-        require(__receiver.destinationMessenger() == cctpMessageTransmitter, "Verify/incorrect-cctp-transmitter");
-
-        // Source domain id has to be always Ethereum Mainnet id
-        require(__receiver.sourceDomainId() == 0, "Verify/incorrect-source-domain-id");
-
-        // Source authority has to be the Ethereum Mainnet Grove Proxy
-        require(__receiver.sourceAuthority() == bytes32(uint256(uint160(Ethereum.GROVE_PROXY))), "Verify/incorrect-source-authority");
-
-        // Target has to be the executor
-        require(__receiver.target() == executor, "Verify/incorrect-target");
-    }
-
-    function verifyOptimismReceiverDeployment(
-        address executor,
-        address receiver
-    ) internal view {
-        OptimismReceiver __receiver = OptimismReceiver(receiver);
-
-        // L1 authority has to be the Ethereum Mainnet Grove Proxy
-        require(__receiver.l1Authority() == Ethereum.GROVE_PROXY, "Verify/incorrect-l1-authority");
-
-        // Target has to be the executor
-        require(__receiver.target() == executor, "Verify/incorrect-target");
-    }
-
-    function verifyLayerZeroReceiverDeployment(
-        address receiver,
-        address executor,
-        address endpoint,
-        LZReceiver.UlConfigParams memory ulnConfigParams
-    ) internal view {
-        LZReceiver __receiver = LZReceiver(receiver);
-
-        // Receiver's destination endpoint has to be a proper endpoint
-        require(address(__receiver.endpoint()) == endpoint, "Verify/incorrect-destination-endpoint");
-
-        // Receiver's source EID has to be the Ethereum Mainnet EID
-        require(__receiver.srcEid() == LZForwarder.ENDPOINT_ID_ETHEREUM, "Verify/incorrect-src-eid");
-
-        // Receiver's source authority has to be the Ethereum Mainnet Grove Proxy
-        require(__receiver.sourceAuthority() == bytes32(uint256(uint160(Ethereum.GROVE_PROXY))), "Verify/incorrect-source-authority");
-
-        // Receiver's target has to be the executor
-        require(__receiver.target() == executor, "Verify/incorrect-target");
-
-        // Delegate has to be set to blank, non-zero address placeholder
-        require(
-            ILayerZeroEndpointV2Like(address(__receiver.endpoint())).delegates(address(__receiver)) == address(1),
-            "Verify/incorrect-delegate"
-        );
-
-        // Owner has to be set to blank, non-zero address placeholder
-        require(__receiver.owner() == address(1), "Verify/incorrect-owner");
-
-        // Get the receive library to query the config
-        (address receiveLib, ) = __receiver.endpoint().getReceiveLibrary(
-            address(__receiver),
-            __receiver.srcEid()
-        );
-
-        // Get the UlnConfig that was set via endpoint
-        bytes memory configBytes = __receiver.endpoint().getConfig(
-            address(__receiver),
-            receiveLib,
-            __receiver.srcEid(),
-            2  // configType 2 is for UlnConfig
-        );
-
-        UlnConfig memory config = abi.decode(configBytes, (UlnConfig));
-
-        // Verify the config was set correctly
-        require(config.confirmations        == ulnConfigParams.confirmations,        "Verify/incorrect-confirmations");
-        require(config.requiredDVNCount     == ulnConfigParams.requiredDVNs.length,  "Verify/incorrect-requiredDVNCount");
-        require(config.optionalDVNCount     == ulnConfigParams.optionalDVNs.length,  "Verify/incorrect-optionalDVNCount");
-        require(config.optionalDVNThreshold == ulnConfigParams.optionalDVNThreshold, "Verify/incorrect-optionalDVNThreshold");
-        require(config.requiredDVNs.length  == ulnConfigParams.requiredDVNs.length,  "Verify/incorrect-requiredDVNs-length");
-        require(config.optionalDVNs.length  == ulnConfigParams.optionalDVNs.length,  "Verify/incorrect-optionalDVNs-length");
-
-        for (uint256 i = 0; i < ulnConfigParams.requiredDVNs.length; i++) {
-            require(config.requiredDVNs[i] == ulnConfigParams.requiredDVNs[i], "Verify/incorrect-requiredDVN");
-        }
-
-        for (uint256 i = 0; i < ulnConfigParams.optionalDVNs.length; i++) {
-            require(config.optionalDVNs[i] == ulnConfigParams.optionalDVNs[i], "Verify/incorrect-optionalDVN");
-        }
-    }
-
     function verifyChainId(uint256 chainId) internal view {
         require(block.chainid == chainId, "Verify/invalid-chain-id");
     }
 
     /**********************************************************************************************/
-    /*** Generic overloads (parameterized authority/source values)                              ***/
+    /*** Receiver-type-specific verifications                                                   ***/
     /**********************************************************************************************/
 
     function verifyArbitrumDeployment(
         Deployment     memory deployment,
         ExecutorParams memory params,
-        address               expectedL1Authority
+        address               expectedSourceAuthority
     ) internal view {
         verifyExecutorDeployment(deployment, params);
-        verifyArbitrumReceiverDeployment(deployment.executor, deployment.receiver, expectedL1Authority);
+        verifyArbitrumReceiverDeployment(deployment.executor, deployment.receiver, expectedSourceAuthority);
     }
 
     function verifyOptimismDeployment(
         Deployment     memory deployment,
         ExecutorParams memory params,
-        address               expectedL1Authority
+        address               expectedSourceAuthority
     ) internal view {
         verifyExecutorDeployment(deployment, params);
-        verifyOptimismReceiverDeployment(deployment.executor, deployment.receiver, expectedL1Authority);
+        verifyOptimismReceiverDeployment(deployment.executor, deployment.receiver, expectedSourceAuthority);
     }
 
     function verifyCctpDeployment(
@@ -279,23 +123,23 @@ library Verify {
     function verifyArbitrumReceiverDeployment(
         address executor,
         address receiver,
-        address expectedL1Authority
+        address expectedSourceAuthority
     ) internal view {
         ArbitrumReceiver __receiver = ArbitrumReceiver(receiver);
 
-        require(__receiver.l1Authority() == expectedL1Authority, "Verify/incorrect-l1-authority");
-        require(__receiver.target()      == executor,            "Verify/incorrect-target");
+        require(__receiver.l1Authority() == expectedSourceAuthority, "Verify/incorrect-source-authority");
+        require(__receiver.target()      == executor,                "Verify/incorrect-target");
     }
 
     function verifyOptimismReceiverDeployment(
         address executor,
         address receiver,
-        address expectedL1Authority
+        address expectedSourceAuthority
     ) internal view {
         OptimismReceiver __receiver = OptimismReceiver(receiver);
 
-        require(__receiver.l1Authority() == expectedL1Authority, "Verify/incorrect-l1-authority");
-        require(__receiver.target()      == executor,            "Verify/incorrect-target");
+        require(__receiver.l1Authority() == expectedSourceAuthority, "Verify/incorrect-source-authority");
+        require(__receiver.target()      == executor,                "Verify/incorrect-target");
     }
 
     function verifyCctpReceiverDeployment(

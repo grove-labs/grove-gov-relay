@@ -5,7 +5,8 @@ import 'forge-std/Test.sol';
 
 import { Executor } from "../src/Executor.sol";
 
-import { DeployConfig } from "../deploy/DeployConfig.sol";
+import { DeployConfig }        from "../deploy/DeployConfig.sol";
+import { VerificationHelpers } from "../deploy/VerificationHelpers.sol";
 
 // Wrapper that re-exposes library functions externally so vm.expectRevert can observe reverts.
 contract DeployConfigHarness {
@@ -15,27 +16,23 @@ contract DeployConfigHarness {
     }
 
     function validateExecutorParams(DeployConfig.ExecutorParams memory ep, bool requireExisting) external view {
-        DeployConfig.validateExecutorParams(ep, requireExisting);
+        VerificationHelpers.validateExecutorParams(ep, requireExisting);
+    }
+
+    function validateSourceAuthority(address authority) external pure {
+        VerificationHelpers.validateSourceAuthority(authority);
     }
 
     function validateAMBReceiverParams(DeployConfig.AMBReceiverParams memory rp) external view {
-        DeployConfig.validateAMBReceiverParams(rp);
-    }
-
-    function validateArbitrumReceiverParams(DeployConfig.ArbitrumReceiverParams memory rp) external pure {
-        DeployConfig.validateArbitrumReceiverParams(rp);
-    }
-
-    function validateOptimismReceiverParams(DeployConfig.OptimismReceiverParams memory rp) external pure {
-        DeployConfig.validateOptimismReceiverParams(rp);
+        VerificationHelpers.validateAMBReceiverParams(rp);
     }
 
     function validateCctpReceiverParams(DeployConfig.CctpReceiverParams memory rp) external view {
-        DeployConfig.validateCctpReceiverParams(rp);
+        VerificationHelpers.validateCctpReceiverParams(rp);
     }
 
     function validateLZReceiverParams(DeployConfig.LZReceiverParams memory rp) external view {
-        DeployConfig.validateLZReceiverParams(rp);
+        VerificationHelpers.validateLZReceiverParams(rp);
     }
 
 }
@@ -66,11 +63,8 @@ contract DeployConfigTests is Test {
         assertEq(ep.delay,           0);
         assertEq(ep.gracePeriod,     7 days);
 
-        DeployConfig.ArbitrumReceiverParams memory rp = DeployConfig.readArbitrumReceiverParams(config);
-        assertEq(rp.l1Authority, 0x1369f7b2b38c76B6478c0f0E66D94923421891Ba);
-
-        DeployConfig.validateExecutorParams(ep, false);
-        DeployConfig.validateArbitrumReceiverParams(rp);
+        address sourceAuthority = DeployConfig.readSourceAuthority(config);
+        assertEq(sourceAuthority, 0x1369f7b2b38c76B6478c0f0E66D94923421891Ba);
     }
 
     function test_readOptimismExample() public view {
@@ -81,11 +75,8 @@ contract DeployConfigTests is Test {
         assertEq(ep.delay,           0);
         assertEq(ep.gracePeriod,     7 days);
 
-        DeployConfig.OptimismReceiverParams memory rp = DeployConfig.readOptimismReceiverParams(config);
-        assertEq(rp.l1Authority, 0x1369f7b2b38c76B6478c0f0E66D94923421891Ba);
-
-        DeployConfig.validateExecutorParams(ep, false);
-        DeployConfig.validateOptimismReceiverParams(rp);
+        address sourceAuthority = DeployConfig.readSourceAuthority(config);
+        assertEq(sourceAuthority, 0x1369f7b2b38c76B6478c0f0E66D94923421891Ba);
     }
 
     function test_readCctpV2Example() public view {
@@ -132,6 +123,29 @@ contract DeployConfigTests is Test {
         assertEq(rp.ulnConfig.optionalDVNThreshold,    0);
     }
 
+    // NOTE: vm.setEnv mutates a process-global env var, so this test bundles the three
+    //       CONFIG cases sequentially in one test to avoid races with parallel runners.
+    function test_loadConfig_envVarBehaviour() public {
+        // 1. Empty CONFIG -> dedicated revert.
+        vm.setEnv("CONFIG", "");
+        vm.expectRevert("DeployConfig/missing-CONFIG-env-var: set CONFIG=<slug> for script/config/<slug>.json");
+        harness.loadConfig();
+
+        // 2. Nonexistent slug -> verbose output and config-not-found revert.
+        vm.setEnv("CONFIG", "definitely-does-not-exist");
+        vm.expectRevert("DeployConfig/config-not-found: definitely-does-not-exist.json");
+        harness.loadConfig();
+
+        // 3. Valid slug -> file is loaded, non-empty content returned.
+        vm.setEnv("CONFIG", "amb.example");
+        string memory config = harness.loadConfig();
+        assertTrue(bytes(config).length > 0);
+    }
+
+    /**********************************************************************************************/
+    /*** VerificationHelpers validation                                                         ***/
+    /**********************************************************************************************/
+
     function test_validateExecutorParams_full_zeroAddress() public view {
         DeployConfig.ExecutorParams memory ep = DeployConfig.ExecutorParams({
             existingAddress: address(0),
@@ -147,7 +161,7 @@ contract DeployConfigTests is Test {
             delay:           0,
             gracePeriod:     1
         });
-        vm.expectRevert("DeployConfig/expected-unset-address: executor.address");
+        vm.expectRevert("VerificationHelpers/expected-unset-address: executor.address");
         harness.validateExecutorParams(ep, false);
     }
 
@@ -157,7 +171,7 @@ contract DeployConfigTests is Test {
             delay:           0,
             gracePeriod:     1
         });
-        vm.expectRevert("DeployConfig/zero-address: executor.address");
+        vm.expectRevert("VerificationHelpers/zero-address: executor.address");
         harness.validateExecutorParams(ep, true);
     }
 
@@ -167,7 +181,7 @@ contract DeployConfigTests is Test {
             delay:           0,
             gracePeriod:     1
         });
-        vm.expectRevert("DeployConfig/no-code-at-address: executor.address");
+        vm.expectRevert("VerificationHelpers/no-code-at-address: executor.address");
         harness.validateExecutorParams(ep, true);
     }
 
@@ -188,7 +202,7 @@ contract DeployConfigTests is Test {
             delay:           2 hours,
             gracePeriod:     7 days
         });
-        vm.expectRevert("DeployConfig/executor-delay-mismatch");
+        vm.expectRevert("VerificationHelpers/executor-delay-mismatch");
         harness.validateExecutorParams(ep, true);
     }
 
@@ -199,16 +213,17 @@ contract DeployConfigTests is Test {
             delay:           1 hours,
             gracePeriod:     14 days
         });
-        vm.expectRevert("DeployConfig/executor-grace-period-mismatch");
+        vm.expectRevert("VerificationHelpers/executor-grace-period-mismatch");
         harness.validateExecutorParams(ep, true);
     }
 
-    function test_validateArbitrumReceiverParams_revertsOnZero() public {
-        DeployConfig.ArbitrumReceiverParams memory rp = DeployConfig.ArbitrumReceiverParams({
-            l1Authority: address(0)
-        });
-        vm.expectRevert("DeployConfig/zero-address: receiver.l1Authority");
-        harness.validateArbitrumReceiverParams(rp);
+    function test_validateSourceAuthority_passesOnNonZero() public {
+        harness.validateSourceAuthority(makeAddr("sourceAuthority"));
+    }
+
+    function test_validateSourceAuthority_revertsOnZero() public {
+        vm.expectRevert("VerificationHelpers/zero-address: receiver.sourceAuthority");
+        harness.validateSourceAuthority(address(0));
     }
 
     function test_validateAMBReceiverParams_revertsOnZeroChainId() public {
@@ -217,7 +232,7 @@ contract DeployConfigTests is Test {
             sourceChainId:   bytes32(0),
             sourceAuthority: makeAddr("auth")
         });
-        vm.expectRevert("DeployConfig/zero-sourceChainId");
+        vm.expectRevert("VerificationHelpers/zero-sourceChainId");
         harness.validateAMBReceiverParams(rp);
     }
 
@@ -227,27 +242,8 @@ contract DeployConfigTests is Test {
             sourceChainId:   bytes32(uint256(1)),
             sourceAuthority: address(0)
         });
-        vm.expectRevert("DeployConfig/zero-address: receiver.sourceAuthority");
+        vm.expectRevert("VerificationHelpers/zero-address: receiver.sourceAuthority");
         harness.validateAMBReceiverParams(rp);
-    }
-
-    // NOTE: vm.setEnv mutates a process-global env var, so this test bundles the three
-    //       CONFIG cases sequentially in one test to avoid races with parallel runners.
-    function test_loadConfig_envVarBehaviour() public {
-        // 1. Empty CONFIG -> dedicated revert.
-        vm.setEnv("CONFIG", "");
-        vm.expectRevert("DeployConfig/missing-CONFIG-env-var: set CONFIG=<slug> for script/config/<slug>.json");
-        harness.loadConfig();
-
-        // 2. Nonexistent slug -> verbose output and config-not-found revert.
-        vm.setEnv("CONFIG", "definitely-does-not-exist");
-        vm.expectRevert("DeployConfig/config-not-found: definitely-does-not-exist.json");
-        harness.loadConfig();
-
-        // 3. Valid slug -> file is loaded, non-empty content returned.
-        vm.setEnv("CONFIG", "amb.example");
-        string memory config = harness.loadConfig();
-        assertTrue(bytes(config).length > 0);
     }
 
     function test_validateLZReceiverParams_revertsOnNoDVNs() public {
@@ -262,7 +258,7 @@ contract DeployConfigTests is Test {
         rp.ulnConfig.optionalDVNs         = new address[](0);
         rp.ulnConfig.optionalDVNThreshold = 0;
 
-        vm.expectRevert("DeployConfig/no-DVNs-configured");
+        vm.expectRevert("VerificationHelpers/no-DVNs-configured");
         harness.validateLZReceiverParams(rp);
     }
 

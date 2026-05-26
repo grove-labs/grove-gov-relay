@@ -5,6 +5,6 @@
     "gracePeriod": 604800
   },
   "receiver": {
-    "l1Authority": "0x1369f7b2b38c76B6478c0f0E66D94923421891Ba"
+    "sourceAuthority": "0x1369f7b2b38c76B6478c0f0E66D94923421891Ba"
   }
 }

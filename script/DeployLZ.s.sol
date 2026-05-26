@@ -4,9 +4,13 @@ pragma solidity ^0.8.0;
 import { console } from "forge-std/console.sol";
 import { Script }  from "forge-std/Script.sol";
 
-import { Deploy }        from "../deploy/Deploy.sol";
-import { DeployConfig }  from "../deploy/DeployConfig.sol";
-import { Verify }        from "../deploy/Verify.sol";
+import { LZReceiver } from "lib/xchain-helpers/src/receivers/LZReceiver.sol";
+
+import { DeployConfig }        from "../deploy/DeployConfig.sol";
+import { Verify }              from "../deploy/Verify.sol";
+import { VerificationHelpers } from "../deploy/VerificationHelpers.sol";
+
+import { Executor } from "src/Executor.sol";
 
 /**
  * @notice Deploys an Executor and an LZReceiver on the chain reachable through `RPC_URL`.
@@ -47,32 +51,35 @@ contract DeployLZFull is Script {
         DeployConfig.ExecutorParams   memory executorParams = DeployConfig.readExecutorParams(config);
         DeployConfig.LZReceiverParams memory receiverParams = DeployConfig.readLZReceiverParams(config);
 
-        DeployConfig.validateExecutorParams(executorParams, false);
-        DeployConfig.validateLZReceiverParams(receiverParams);
+        VerificationHelpers.validateExecutorParams(executorParams, false);
+        VerificationHelpers.validateLZReceiverParams(receiverParams);
+
+        bytes32 sourceAuthorityBytes32 = bytes32(uint256(uint160(receiverParams.sourceAuthority)));
 
         vm.startBroadcast();
 
-        address executor = Deploy.deployExecutor(executorParams.delay, executorParams.gracePeriod);
-        address receiver = Deploy.deployLZReceiver({
-            destinationEndpoint : receiverParams.destinationEndpoint,
-            srcEid              : receiverParams.srcEid,
-            sourceAuthority     : receiverParams.sourceAuthority,
-            executor            : executor,
-            delegate            : receiverParams.delegate,
-            owner               : receiverParams.owner,
-            ulnConfigParams     : receiverParams.ulnConfig
-        });
+        Executor executor = new Executor(executorParams.delay, executorParams.gracePeriod);
+        address  receiver = address(new LZReceiver({
+            _destinationEndpoint : receiverParams.destinationEndpoint,
+            _srcEid              : receiverParams.srcEid,
+            _sourceAuthority     : sourceAuthorityBytes32,
+            _target              : address(executor),
+            _delegate            : receiverParams.delegate,
+            _owner               : receiverParams.owner,
+            _ulnConfigParams     : receiverParams.ulnConfig
+        }));
 
-        Deploy.setUpExecutorPermissions(executor, receiver, msg.sender);
+        executor.grantRole(executor.SUBMISSION_ROLE(),     receiver);
+        executor.revokeRole(executor.DEFAULT_ADMIN_ROLE(), msg.sender);
 
         vm.stopBroadcast();
 
-        console.log("executor deployed at:", executor);
+        console.log("executor deployed at:", address(executor));
         console.log("receiver deployed at:", receiver);
 
         Verify.verifyLayerZeroDeployment({
             deployment : Verify.Deployment({
-                executor : executor,
+                executor : address(executor),
                 receiver : receiver,
                 deployer : msg.sender
             }),
@@ -82,7 +89,7 @@ contract DeployLZFull is Script {
             }),
             endpoint                : receiverParams.destinationEndpoint,
             expectedSrcEid          : receiverParams.srcEid,
-            expectedSourceAuthority : bytes32(uint256(uint160(receiverParams.sourceAuthority))),
+            expectedSourceAuthority : sourceAuthorityBytes32,
             expectedDelegate        : receiverParams.delegate,
             expectedOwner           : receiverParams.owner,
             ulnConfigParams         : receiverParams.ulnConfig
@@ -116,22 +123,23 @@ contract DeployLZReceiverOnly is Script {
         DeployConfig.ExecutorParams   memory executorParams = DeployConfig.readExecutorParams(config);
         DeployConfig.LZReceiverParams memory receiverParams = DeployConfig.readLZReceiverParams(config);
 
-        DeployConfig.validateExecutorParams(executorParams, true);
-        DeployConfig.validateLZReceiverParams(receiverParams);
+        VerificationHelpers.validateExecutorParams(executorParams, true);
+        VerificationHelpers.validateLZReceiverParams(receiverParams);
 
-        address executor = executorParams.existingAddress;
+        address executor               = executorParams.existingAddress;
+        bytes32 sourceAuthorityBytes32 = bytes32(uint256(uint160(receiverParams.sourceAuthority)));
 
         vm.startBroadcast();
 
-        address receiver = Deploy.deployLZReceiver({
-            destinationEndpoint : receiverParams.destinationEndpoint,
-            srcEid              : receiverParams.srcEid,
-            sourceAuthority     : receiverParams.sourceAuthority,
-            executor            : executor,
-            delegate            : receiverParams.delegate,
-            owner               : receiverParams.owner,
-            ulnConfigParams     : receiverParams.ulnConfig
-        });
+        address receiver = address(new LZReceiver({
+            _destinationEndpoint : receiverParams.destinationEndpoint,
+            _srcEid              : receiverParams.srcEid,
+            _sourceAuthority     : sourceAuthorityBytes32,
+            _target              : executor,
+            _delegate            : receiverParams.delegate,
+            _owner               : receiverParams.owner,
+            _ulnConfigParams     : receiverParams.ulnConfig
+        }));
 
         vm.stopBroadcast();
 
@@ -143,7 +151,7 @@ contract DeployLZReceiverOnly is Script {
             executor                : executor,
             endpoint                : receiverParams.destinationEndpoint,
             expectedSrcEid          : receiverParams.srcEid,
-            expectedSourceAuthority : bytes32(uint256(uint160(receiverParams.sourceAuthority))),
+            expectedSourceAuthority : sourceAuthorityBytes32,
             expectedDelegate        : receiverParams.delegate,
             expectedOwner           : receiverParams.owner,
             ulnConfigParams         : receiverParams.ulnConfig

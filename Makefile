@@ -18,8 +18,6 @@ export CONFIG
 FORGE_FLAGS ?=
 
 .PHONY: \
-    deploy-arbitrum-one deploy-base deploy-optimism deploy-unichain deploy-avalanche \
-    deploy-avalanche-lz deploy-plume deploy-plasma deploy-monad \
     deploy-arbitrum-full deploy-arbitrum-receiver \
     deploy-optimism-full deploy-optimism-receiver \
     deploy-cctp-v2-full  deploy-cctp-v2-receiver \
@@ -35,17 +33,6 @@ FORGE_FLAGS ?=
     deploy-lz-full-plasma                 deploy-lz-receiver-plasma \
     deploy-lz-full-avalanche              deploy-lz-receiver-avalanche \
     deploy-amb-full-gnosis                deploy-amb-receiver-gnosis
-
-# Legacy chain-specific deployment targets (kept for backwards compatibility).
-deploy-arbitrum-one :; forge script script/Deploy.s.sol:DeployArbitrumOneExecutor --broadcast --verify $(FORGE_FLAGS)
-deploy-base         :; forge script script/Deploy.s.sol:DeployBaseExecutor        --broadcast --verify $(FORGE_FLAGS)
-deploy-optimism     :; forge script script/Deploy.s.sol:DeployOptimismExecutor    --broadcast --verify $(FORGE_FLAGS)
-deploy-unichain     :; forge script script/Deploy.s.sol:DeployUnichainExecutor    --broadcast --verify $(FORGE_FLAGS)
-deploy-avalanche    :; forge script script/Deploy.s.sol:DeployAvalancheExecutor   --broadcast --verify $(FORGE_FLAGS)
-deploy-avalanche-lz :; forge script script/Deploy.s.sol:DeployAvalancheLZReceiver --broadcast --verify $(FORGE_FLAGS)
-deploy-plume        :; forge script script/Deploy.s.sol:DeployPlumeExecutor       --broadcast --verify $(FORGE_FLAGS)
-deploy-plasma       :; forge script script/Deploy.s.sol:DeployPlasmaExecutor      --broadcast --verify $(FORGE_FLAGS)
-deploy-monad        :; forge script script/Deploy.s.sol:DeployMonadExecutor       --broadcast --verify $(FORGE_FLAGS)
 
 # Generic deployment targets. Both `RPC_URL` and `CONFIG` env vars must be set.
 # `CONFIG` selects script/config/<CONFIG>.json; `RPC_URL` selects the destination chain.

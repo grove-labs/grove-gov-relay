@@ -4,9 +4,13 @@ pragma solidity ^0.8.0;
 import { console } from "forge-std/console.sol";
 import { Script }  from "forge-std/Script.sol";
 
-import { Deploy }        from "../deploy/Deploy.sol";
-import { DeployConfig }  from "../deploy/DeployConfig.sol";
-import { Verify }        from "../deploy/Verify.sol";
+import { CCTPv2Receiver } from "lib/xchain-helpers/src/receivers/CCTPv2Receiver.sol";
+
+import { DeployConfig }        from "../deploy/DeployConfig.sol";
+import { Verify }              from "../deploy/Verify.sol";
+import { VerificationHelpers } from "../deploy/VerificationHelpers.sol";
+
+import { Executor } from "src/Executor.sol";
 
 /**
  * @notice Deploys an Executor and a CCTPv2Receiver on the chain reachable through `RPC_URL`.
@@ -41,31 +45,32 @@ contract DeployCCTPv2Full is Script {
         DeployConfig.ExecutorParams     memory executorParams = DeployConfig.readExecutorParams(config);
         DeployConfig.CctpReceiverParams memory receiverParams = DeployConfig.readCctpReceiverParams(config);
 
-        DeployConfig.validateExecutorParams(executorParams, false);
-        DeployConfig.validateCctpReceiverParams(receiverParams);
+        VerificationHelpers.validateExecutorParams(executorParams, false);
+        VerificationHelpers.validateCctpReceiverParams(receiverParams);
 
         bytes32 sourceAuthorityBytes32 = bytes32(uint256(uint160(receiverParams.sourceAuthority)));
 
         vm.startBroadcast();
 
-        address executor = Deploy.deployExecutor(executorParams.delay, executorParams.gracePeriod);
-        address receiver = Deploy.deployCCTPv2Receiver({
-            destinationMessenger : receiverParams.destinationMessenger,
-            sourceDomainId       : receiverParams.sourceDomainId,
-            sourceAuthority      : sourceAuthorityBytes32,
-            executor             : executor
-        });
+        Executor executor = new Executor(executorParams.delay, executorParams.gracePeriod);
+        address  receiver = address(new CCTPv2Receiver({
+            _destinationMessenger : receiverParams.destinationMessenger,
+            _sourceDomainId       : receiverParams.sourceDomainId,
+            _sourceAuthority      : sourceAuthorityBytes32,
+            _target               : address(executor)
+        }));
 
-        Deploy.setUpExecutorPermissions(executor, receiver, msg.sender);
+        executor.grantRole(executor.SUBMISSION_ROLE(),     receiver);
+        executor.revokeRole(executor.DEFAULT_ADMIN_ROLE(), msg.sender);
 
         vm.stopBroadcast();
 
-        console.log("executor deployed at:", executor);
+        console.log("executor deployed at:", address(executor));
         console.log("receiver deployed at:", receiver);
 
         Verify.verifyCctpV2Deployment({
             deployment : Verify.Deployment({
-                executor : executor,
+                executor : address(executor),
                 receiver : receiver,
                 deployer : msg.sender
             }),
@@ -108,20 +113,20 @@ contract DeployCCTPv2ReceiverOnly is Script {
         DeployConfig.ExecutorParams     memory executorParams = DeployConfig.readExecutorParams(config);
         DeployConfig.CctpReceiverParams memory receiverParams = DeployConfig.readCctpReceiverParams(config);
 
-        DeployConfig.validateExecutorParams(executorParams, true);
-        DeployConfig.validateCctpReceiverParams(receiverParams);
+        VerificationHelpers.validateExecutorParams(executorParams, true);
+        VerificationHelpers.validateCctpReceiverParams(receiverParams);
 
         address executor               = executorParams.existingAddress;
         bytes32 sourceAuthorityBytes32 = bytes32(uint256(uint160(receiverParams.sourceAuthority)));
 
         vm.startBroadcast();
 
-        address receiver = Deploy.deployCCTPv2Receiver({
-            destinationMessenger : receiverParams.destinationMessenger,
-            sourceDomainId       : receiverParams.sourceDomainId,
-            sourceAuthority      : sourceAuthorityBytes32,
-            executor             : executor
-        });
+        address receiver = address(new CCTPv2Receiver({
+            _destinationMessenger : receiverParams.destinationMessenger,
+            _sourceDomainId       : receiverParams.sourceDomainId,
+            _sourceAuthority      : sourceAuthorityBytes32,
+            _target               : executor
+        }));
 
         vm.stopBroadcast();
 

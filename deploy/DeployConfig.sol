@@ -7,8 +7,6 @@ import { Vm }      from "forge-std/Vm.sol";
 
 import { LZReceiver } from "lib/xchain-helpers/src/receivers/LZReceiver.sol";
 
-import { Executor } from "src/Executor.sol";
-
 /**
  * @title  DeployConfig
  * @notice Helpers for loading deployment configuration from JSON and validating inputs.
@@ -37,14 +35,6 @@ library DeployConfig {
         address amb;
         bytes32 sourceChainId;
         address sourceAuthority;
-    }
-
-    struct ArbitrumReceiverParams {
-        address l1Authority;
-    }
-
-    struct OptimismReceiverParams {
-        address l1Authority;
     }
 
     struct CctpReceiverParams {
@@ -130,16 +120,10 @@ library DeployConfig {
         p.sourceAuthority = config.readAddress(".receiver.sourceAuthority");
     }
 
-    function readArbitrumReceiverParams(string memory config)
-        internal pure returns (ArbitrumReceiverParams memory p)
+    function readSourceAuthority(string memory config)
+        internal pure returns (address sourceAuthority)
     {
-        p.l1Authority = config.readAddress(".receiver.l1Authority");
-    }
-
-    function readOptimismReceiverParams(string memory config)
-        internal pure returns (OptimismReceiverParams memory p)
-    {
-        p.l1Authority = config.readAddress(".receiver.l1Authority");
+        sourceAuthority = config.readAddress(".receiver.sourceAuthority");
     }
 
     function readCctpReceiverParams(string memory config)
@@ -165,82 +149,6 @@ library DeployConfig {
             optionalDVNs         : config.readAddressArray(".receiver.ulnConfig.optionalDVNs"),
             optionalDVNThreshold : uint8(config.readUint(".receiver.ulnConfig.optionalDVNThreshold"))
         });
-    }
-
-    /**********************************************************************************************/
-    /*** Validation helpers                                                                     ***/
-    /**********************************************************************************************/
-
-    function requireNonZero(address a, string memory name) internal pure {
-        require(a != address(0), string.concat("DeployConfig/zero-address: ", name));
-    }
-
-    function requireZero(address a, string memory name) internal pure {
-        require(a == address(0), string.concat("DeployConfig/expected-unset-address: ", name));
-    }
-
-    function requireHasCode(address a, string memory name) internal view {
-        require(a != address(0),     string.concat("DeployConfig/zero-address: ",     name));
-        require(a.code.length != 0,  string.concat("DeployConfig/no-code-at-address: ", name));
-    }
-
-    /**********************************************************************************************/
-    /*** Receiver-type-specific input checks                                                    ***/
-    /**********************************************************************************************/
-
-    function validateExecutorParams(ExecutorParams memory p, bool requireExisting) internal view {
-        if (requireExisting) {
-            requireHasCode(p.existingAddress, "executor.address");
-
-            Executor existing = Executor(p.existingAddress);
-            require(
-                existing.delay() == p.delay,
-                "DeployConfig/executor-delay-mismatch"
-            );
-            require(
-                existing.gracePeriod() == p.gracePeriod,
-                "DeployConfig/executor-grace-period-mismatch"
-            );
-        } else {
-            requireZero(p.existingAddress, "executor.address");
-            // delay/gracePeriod are intentionally not constrained here; arbitrary values are valid.
-        }
-    }
-
-    function validateAMBReceiverParams(AMBReceiverParams memory p) internal view {
-        requireHasCode(p.amb,             "receiver.amb");
-        requireNonZero(p.sourceAuthority, "receiver.sourceAuthority");
-        require(p.sourceChainId != bytes32(0), "DeployConfig/zero-sourceChainId");
-    }
-
-    function validateArbitrumReceiverParams(ArbitrumReceiverParams memory p) internal pure {
-        requireNonZero(p.l1Authority, "receiver.l1Authority");
-    }
-
-    function validateOptimismReceiverParams(OptimismReceiverParams memory p) internal pure {
-        requireNonZero(p.l1Authority, "receiver.l1Authority");
-    }
-
-    function validateCctpReceiverParams(CctpReceiverParams memory p) internal view {
-        requireHasCode(p.destinationMessenger, "receiver.destinationMessenger");
-        requireNonZero(p.sourceAuthority,      "receiver.sourceAuthority");
-    }
-
-    function validateLZReceiverParams(LZReceiverParams memory p) internal view {
-        requireHasCode(p.destinationEndpoint, "receiver.destinationEndpoint");
-        requireNonZero(p.sourceAuthority,     "receiver.sourceAuthority");
-        requireNonZero(p.delegate,            "receiver.delegate");
-        requireNonZero(p.owner,               "receiver.owner");
-        require(p.srcEid != 0,                "DeployConfig/zero-srcEid");
-        require(
-            p.ulnConfig.requiredDVNs.length > 0
-            || (p.ulnConfig.optionalDVNs.length > 0 && p.ulnConfig.optionalDVNThreshold > 0),
-            "DeployConfig/no-DVNs-configured"
-        );
-        require(
-            p.ulnConfig.optionalDVNThreshold <= p.ulnConfig.optionalDVNs.length,
-            "DeployConfig/optional-threshold-exceeds-optional-DVNs"
-        );
     }
 
 }
