@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import { console } from "forge-std/console.sol";
-import { Script }  from "forge-std/Script.sol";
 
 import { AMBReceiver } from "lib/xchain-helpers/src/receivers/AMBReceiver.sol";
 
@@ -10,21 +9,27 @@ import { AMBReceiverDeploy } from "../deploy/AMBReceiverDeploy.sol";
 import { DeployConfig }      from "../deploy/DeployConfig.sol";
 import { DeployExecutor }    from "../deploy/DeployExecutor.sol";
 
+import { BaseDeployScript } from "./BaseDeployScript.sol";
+
 import { Executor } from "src/Executor.sol";
 
 /**
- * @notice Deploys an Executor and an AMBReceiver on the chain reachable through `RPC_URL`.
+ * @notice Deploys an Executor and an AMBReceiver on the chain selected via `CHAIN`.
  *
- * @dev Required env vars:
- *      - RPC_URL: RPC endpoint of the destination chain
- *      - CONFIG : config slug, file `script/config/<CONFIG>.json` must exist
+ * @dev Required env vars: `CHAIN` (forge alias) plus the corresponding `<ALIAS>_RPC_URL`.
+ *      Optional: `CONFIG` overrides the default slug `amb.<chain>`.
+ *      Custom chains: also set `CHAIN_RPC_URL` and `CHAIN_ID`. See Makefile header.
  */
-contract DeployAMBFull is Script {
+contract DeployAMBFull is BaseDeployScript {
+
+    string internal constant RECEIVER_TYPE = "amb";
 
     function run() public {
-        DeployConfig.selectFork();
+        (string memory chainName,) = selectChain();
 
-        string memory config = DeployConfig.loadConfig();
+        string memory config = DeployConfig.loadConfig(
+            string.concat(RECEIVER_TYPE, ".", chainName)
+        );
 
         DeployExecutor.ExecutorParams memory executorParams = DeployExecutor.readExecutorParams(config);
         AMBReceiverDeploy.Params      memory receiverParams = AMBReceiverDeploy.read(config);
@@ -65,24 +70,20 @@ contract DeployAMBFull is Script {
 /**
  * @notice Deploys an AMBReceiver pointing at an already-deployed Executor.
  *
- * @dev Required env vars:
- *      - RPC_URL: RPC endpoint of the destination chain
- *      - CONFIG : config slug, file `script/config/<CONFIG>.json` must exist
- *
- *      `executor.address` in the JSON config must be the address of the already-deployed
- *      executor on the destination chain.
- *
- *      Note: this script does NOT call setUpPermissions - granting the new receiver its
- *      SUBMISSION_ROLE on the existing executor must be done via a governance payload,
- *      since the deployer no longer holds DEFAULT_ADMIN_ROLE on the executor after the
- *      original deployment.
+ * @dev `executor.address` in the JSON config must be the existing executor on the chosen
+ *      chain. This script does NOT call setUpPermissions - granting the new receiver its
+ *      SUBMISSION_ROLE on the existing executor is a governance action.
  */
-contract DeployAMBReceiverOnly is Script {
+contract DeployAMBReceiverOnly is BaseDeployScript {
+
+    string internal constant RECEIVER_TYPE = "amb";
 
     function run() public {
-        DeployConfig.selectFork();
+        (string memory chainName,) = selectChain();
 
-        string memory config = DeployConfig.loadConfig();
+        string memory config = DeployConfig.loadConfig(
+            string.concat(RECEIVER_TYPE, ".", chainName)
+        );
 
         DeployExecutor.ExecutorParams memory executorParams = DeployExecutor.readExecutorParams(config);
         AMBReceiverDeploy.Params      memory receiverParams = AMBReceiverDeploy.read(config);
@@ -104,7 +105,7 @@ contract DeployAMBReceiverOnly is Script {
         vm.stopBroadcast();
 
         console.log("receiver deployed at:", receiver);
-        console.log("re-using executor at :", executor);
+        console.log("re-using executor at:", executor);
 
         AMBReceiverDeploy.verifyReceiverOnly({
             executor       : executor,

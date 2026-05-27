@@ -8,8 +8,8 @@ import { DeployConfig } from "../deploy/DeployConfig.sol";
 // Wrapper that re-exposes library functions externally so vm.expectRevert can observe reverts.
 contract DeployConfigHarness {
 
-    function loadConfig() external returns (string memory) {
-        return DeployConfig.loadConfig();
+    function loadConfig(string memory defaultSlug) external returns (string memory) {
+        return DeployConfig.loadConfig(defaultSlug);
     }
 
 }
@@ -22,23 +22,33 @@ contract DeployConfigTests is Test {
         harness = new DeployConfigHarness();
     }
 
-    // NOTE: vm.setEnv mutates a process-global env var, so this test bundles the three
-    //       CONFIG cases sequentially in one test to avoid races with parallel runners.
+    // NOTE: vm.setEnv mutates a process-global env var, so all of the CONFIG cases are
+    //       bundled sequentially in one test to avoid races with parallel runners.
     function test_loadConfig_envVarBehaviour() public {
-        // 1. Empty CONFIG -> dedicated revert.
+        // 1. Empty CONFIG and empty defaultSlug -> dedicated revert.
         vm.setEnv("CONFIG", "");
-        vm.expectRevert("DeployConfig/missing-CONFIG-env-var: set CONFIG=<slug> for script/config/<slug>.json");
-        harness.loadConfig();
+        vm.expectRevert("DeployConfig/missing-CONFIG-and-no-default: set CONFIG=<slug> for script/config/<slug>.json");
+        harness.loadConfig("");
 
-        // 2. Nonexistent slug -> verbose output and config-not-found revert.
+        // 2. Empty CONFIG, defaultSlug points at non-existent file -> config-not-found.
+        vm.setEnv("CONFIG", "");
+        vm.expectRevert("DeployConfig/config-not-found: definitely-does-not-exist.json");
+        harness.loadConfig("definitely-does-not-exist");
+
+        // 3. Empty CONFIG, defaultSlug points at a real file -> loaded.
+        vm.setEnv("CONFIG", "");
+        string memory configFromDefault = harness.loadConfig("amb.example");
+        assertTrue(bytes(configFromDefault).length > 0);
+
+        // 4. Nonexistent CONFIG slug -> verbose output and config-not-found revert.
         vm.setEnv("CONFIG", "definitely-does-not-exist");
         vm.expectRevert("DeployConfig/config-not-found: definitely-does-not-exist.json");
-        harness.loadConfig();
+        harness.loadConfig("amb.example");
 
-        // 3. Valid slug -> file is loaded, non-empty content returned.
+        // 5. Valid CONFIG slug overrides defaultSlug.
         vm.setEnv("CONFIG", "amb.example");
-        string memory config = harness.loadConfig();
-        assertTrue(bytes(config).length > 0);
+        string memory configFromEnv = harness.loadConfig("does-not-matter");
+        assertTrue(bytes(configFromEnv).length > 0);
     }
 
 }

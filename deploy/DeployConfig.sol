@@ -6,17 +6,19 @@ import { Vm }      from "forge-std/Vm.sol";
 
 /**
  * @title  DeployConfig
- * @notice Generic, receiver-agnostic deployment I/O: loading config files and selecting the
- *         destination chain via RPC.
+ * @notice Generic, receiver-agnostic deployment config I/O.
  *
  * @dev Conventions:
- *      - The destination chain is selected via the `RPC_URL` environment variable; the
- *        operator is responsible for pairing the correct RPC with the chosen config.
- *      - The deployment configuration is loaded from `script/config/<CONFIG>.json`,
- *        where `<CONFIG>` is provided via the `CONFIG` environment variable.
+ *      - The configuration is loaded from `script/config/<CONFIG>.json`. `CONFIG` may be
+ *        provided via the `CONFIG` env var, otherwise it falls back to `<defaultSlug>`,
+ *        which scripts compose from `<RECEIVER_TYPE>.<chainName>` so that the chain
+ *        selected via `BaseDeployScript.selectChain()` automatically picks up the right
+ *        config file (e.g. `arbitrum.plume.json`).
+ *      - Chain selection (RPC + chainId resolution) is the responsibility of
+ *        `BaseDeployScript`, not this library.
  *
- *      Per-receiver and executor-specific concerns live in their own libraries and are not
- *      meant to be edited when a new bridging solution is added.
+ *      Per-receiver and executor-specific concerns live in their own libraries and are
+ *      not meant to be edited when a new bridging solution is added.
  */
 library DeployConfig {
 
@@ -24,20 +26,29 @@ library DeployConfig {
 
     string internal constant CONFIG_DIR = "/script/config/";
 
-    function loadConfig() internal returns (string memory config) {
+    /**
+     * @notice Loads the JSON config file for this deployment.
+     * @param  defaultSlug Fallback file slug used when the `CONFIG` env var is unset.
+     *                     Convention: `<receiver>.<chain>` (e.g. `arbitrum.arbitrum-one`).
+     * @return config      The raw JSON payload as a string.
+     */
+    function loadConfig(string memory defaultSlug) internal returns (string memory config) {
         string memory configName = vm.envOr("CONFIG", string(""));
-        require(
-            bytes(configName).length > 0,
-            "DeployConfig/missing-CONFIG-env-var: set CONFIG=<slug> for script/config/<slug>.json"
-        );
+        if (bytes(configName).length == 0) {
+            require(
+                bytes(defaultSlug).length > 0,
+                "DeployConfig/missing-CONFIG-and-no-default: set CONFIG=<slug> for script/config/<slug>.json"
+            );
+            configName = defaultSlug;
+        }
 
         string memory configDir = string.concat(vm.projectRoot(), CONFIG_DIR);
         string memory path      = string.concat(configDir, configName, ".json");
 
         if (!vm.exists(path)) {
             console.log("DeployConfig: config slug not found ->", configName);
-            console.log("DeployConfig: expected path           ->", path);
-            console.log("DeployConfig: available configs in    ->", configDir);
+            console.log("DeployConfig: expected path         ->", path);
+            console.log("DeployConfig: available configs in  ->", configDir);
             Vm.DirEntry[] memory entries = vm.readDir(configDir);
             for (uint256 i = 0; i < entries.length; i++) {
                 console.log("  -", entries[i].path);
@@ -47,25 +58,6 @@ library DeployConfig {
 
         config = vm.readFile(path);
         console.log("DeployConfig: loaded", path);
-    }
-
-    /**
-     * @dev Creates an in-memory fork against `RPC_URL` so that storage reads, code probes,
-     *      and `block.chainid` reflect the destination chain during script execution.
-     *
-     *      For broadcasting, `forge script` itself also needs `--rpc-url $RPC_URL` (passed
-     *      via the Makefile recipes); the `--rpc-url` flag controls where forge actually
-     *      sends signed transactions and how it estimates gas. Both settings should point
-     *      to the same endpoint - the in-script fork is for simulation/validation, the
-     *      forge-level RPC is for the broadcast leg.
-     */
-    function selectFork() internal returns (uint256 forkId) {
-        string memory rpcUrl = vm.envOr("RPC_URL", string(""));
-        require(
-            bytes(rpcUrl).length > 0,
-            "DeployConfig/missing-RPC_URL-env-var: set RPC_URL=<endpoint> to select destination chain"
-        );
-        forkId = vm.createSelectFork(rpcUrl);
     }
 
 }
