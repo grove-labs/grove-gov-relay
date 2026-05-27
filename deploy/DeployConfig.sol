@@ -2,59 +2,27 @@
 pragma solidity ^0.8.0;
 
 import { console } from "forge-std/console.sol";
-import { stdJson } from "forge-std/StdJson.sol";
 import { Vm }      from "forge-std/Vm.sol";
-
-import { LZReceiver } from "lib/xchain-helpers/src/receivers/LZReceiver.sol";
 
 /**
  * @title  DeployConfig
- * @notice Helpers for loading deployment configuration from JSON and validating inputs.
+ * @notice Generic, receiver-agnostic deployment I/O: loading config files and selecting the
+ *         destination chain via RPC.
  *
  * @dev Conventions:
  *      - The destination chain is selected via the `RPC_URL` environment variable; the
  *        operator is responsible for pairing the correct RPC with the chosen config.
  *      - The deployment configuration is loaded from `script/config/<CONFIG>.json`,
  *        where `<CONFIG>` is provided via the `CONFIG` environment variable.
+ *
+ *      Per-receiver and executor-specific concerns live in their own libraries and are not
+ *      meant to be edited when a new bridging solution is added.
  */
 library DeployConfig {
-
-    using stdJson for string;
 
     Vm internal constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
 
     string internal constant CONFIG_DIR = "/script/config/";
-
-    struct ExecutorParams {
-        address existingAddress;
-        uint256 delay;
-        uint256 gracePeriod;
-    }
-
-    struct AMBReceiverParams {
-        address amb;
-        bytes32 sourceChainId;
-        address sourceAuthority;
-    }
-
-    struct CctpReceiverParams {
-        address destinationMessenger;
-        uint32  sourceDomainId;
-        address sourceAuthority;
-    }
-
-    struct LZReceiverParams {
-        address                   destinationEndpoint;
-        uint32                    srcEid;
-        address                   sourceAuthority;
-        address                   delegate;
-        address                   owner;
-        LZReceiver.UlConfigParams ulnConfig;
-    }
-
-    /**********************************************************************************************/
-    /*** Loading                                                                                ***/
-    /**********************************************************************************************/
 
     function loadConfig() internal returns (string memory config) {
         string memory configName = vm.envOr("CONFIG", string(""));
@@ -98,57 +66,6 @@ library DeployConfig {
             "DeployConfig/missing-RPC_URL-env-var: set RPC_URL=<endpoint> to select destination chain"
         );
         forkId = vm.createSelectFork(rpcUrl);
-    }
-
-    /**********************************************************************************************/
-    /*** Readers                                                                                ***/
-    /**********************************************************************************************/
-
-    function readExecutorParams(string memory config)
-        internal pure returns (ExecutorParams memory p)
-    {
-        p.existingAddress = config.readAddress(".executor.address");
-        p.delay           = config.readUint(".executor.delay");
-        p.gracePeriod     = config.readUint(".executor.gracePeriod");
-    }
-
-    function readAMBReceiverParams(string memory config)
-        internal pure returns (AMBReceiverParams memory p)
-    {
-        p.amb             = config.readAddress(".receiver.amb");
-        p.sourceChainId   = bytes32(config.readUint(".receiver.sourceChainId"));
-        p.sourceAuthority = config.readAddress(".receiver.sourceAuthority");
-    }
-
-    function readSourceAuthority(string memory config)
-        internal pure returns (address sourceAuthority)
-    {
-        sourceAuthority = config.readAddress(".receiver.sourceAuthority");
-    }
-
-    function readCctpReceiverParams(string memory config)
-        internal pure returns (CctpReceiverParams memory p)
-    {
-        p.destinationMessenger = config.readAddress(".receiver.destinationMessenger");
-        p.sourceDomainId       = uint32(config.readUint(".receiver.sourceDomainId"));
-        p.sourceAuthority      = config.readAddress(".receiver.sourceAuthority");
-    }
-
-    function readLZReceiverParams(string memory config)
-        internal pure returns (LZReceiverParams memory p)
-    {
-        p.destinationEndpoint = config.readAddress(".receiver.destinationEndpoint");
-        p.srcEid              = uint32(config.readUint(".receiver.srcEid"));
-        p.sourceAuthority     = config.readAddress(".receiver.sourceAuthority");
-        p.delegate            = config.readAddress(".receiver.delegate");
-        p.owner               = config.readAddress(".receiver.owner");
-
-        p.ulnConfig = LZReceiver.UlConfigParams({
-            confirmations        : uint32(config.readUint(".receiver.ulnConfig.confirmations")),
-            requiredDVNs         : config.readAddressArray(".receiver.ulnConfig.requiredDVNs"),
-            optionalDVNs         : config.readAddressArray(".receiver.ulnConfig.optionalDVNs"),
-            optionalDVNThreshold : uint8(config.readUint(".receiver.ulnConfig.optionalDVNThreshold"))
-        });
     }
 
 }

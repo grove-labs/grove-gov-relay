@@ -6,9 +6,9 @@ import { Script }  from "forge-std/Script.sol";
 
 import { OptimismReceiver } from "lib/xchain-helpers/src/receivers/OptimismReceiver.sol";
 
-import { DeployConfig }        from "../deploy/DeployConfig.sol";
-import { Verify }              from "../deploy/Verify.sol";
-import { VerificationHelpers } from "../deploy/VerificationHelpers.sol";
+import { DeployConfig }           from "../deploy/DeployConfig.sol";
+import { DeployExecutor }         from "../deploy/DeployExecutor.sol";
+import { OptimismReceiverDeploy } from "../deploy/OptimismReceiverDeploy.sol";
 
 import { Executor } from "src/Executor.sol";
 
@@ -18,18 +18,6 @@ import { Executor } from "src/Executor.sol";
  * @dev Required env vars:
  *      - RPC_URL: RPC endpoint of the destination chain
  *      - CONFIG : config slug, file `script/config/<CONFIG>.json` must exist
- *
- *      JSON schema:
- *      {
- *        "executor": {
- *          "address":     "0x0000...0000",   // must be unset for full deploy
- *          "delay":       <uint>,
- *          "gracePeriod": <uint>
- *        },
- *        "receiver": {
- *          "sourceAuthority": "0x..."
- *        }
- *      }
  */
 contract DeployOptimismFull is Script {
 
@@ -38,36 +26,32 @@ contract DeployOptimismFull is Script {
 
         string memory config = DeployConfig.loadConfig();
 
-        DeployConfig.ExecutorParams memory executorParams   = DeployConfig.readExecutorParams(config);
-        address                            sourceAuthority = DeployConfig.readSourceAuthority(config);
+        DeployExecutor.ExecutorParams   memory executorParams = DeployExecutor.readExecutorParams(config);
+        OptimismReceiverDeploy.Params   memory receiverParams = OptimismReceiverDeploy.read(config);
 
-        VerificationHelpers.validateExecutorParams(executorParams, false);
-        VerificationHelpers.validateSourceAuthority(sourceAuthority);
+        DeployExecutor.validateExecutorParams(executorParams, false);
+        OptimismReceiverDeploy.validate(receiverParams);
 
         vm.startBroadcast();
 
         Executor executor = new Executor(executorParams.delay, executorParams.gracePeriod);
-        address  receiver = address(new OptimismReceiver(sourceAuthority, address(executor)));
+        address  receiver = address(new OptimismReceiver(receiverParams.sourceAuthority, address(executor)));
 
-        executor.grantRole(executor.SUBMISSION_ROLE(),     receiver);
-        executor.revokeRole(executor.DEFAULT_ADMIN_ROLE(), msg.sender);
+        DeployExecutor.setUpPermissions(executor, receiver, msg.sender);
 
         vm.stopBroadcast();
 
         console.log("executor deployed at:", address(executor));
         console.log("receiver deployed at:", receiver);
 
-        Verify.verifyOptimismDeployment({
-            deployment : Verify.Deployment({
+        OptimismReceiverDeploy.verifyFull({
+            deployment : DeployExecutor.Deployment({
                 executor : address(executor),
                 receiver : receiver,
                 deployer : msg.sender
             }),
-            params : Verify.ExecutorParams({
-                delay       : executorParams.delay,
-                gracePeriod : executorParams.gracePeriod
-            }),
-            expectedSourceAuthority : sourceAuthority
+            executorParams : executorParams,
+            receiverParams : receiverParams
         });
     }
 
@@ -83,8 +67,8 @@ contract DeployOptimismFull is Script {
  *      `executor.address` in the JSON config must be the address of the already-deployed
  *      executor on the destination chain.
  *
- *      Note: this script does NOT call setUpExecutorPermissions - granting the new receiver
- *      its SUBMISSION_ROLE on the existing executor must be done via a governance payload,
+ *      Note: this script does NOT call setUpPermissions - granting the new receiver its
+ *      SUBMISSION_ROLE on the existing executor must be done via a governance payload,
  *      since the deployer no longer holds DEFAULT_ADMIN_ROLE on the executor after the
  *      original deployment.
  */
@@ -95,27 +79,27 @@ contract DeployOptimismReceiverOnly is Script {
 
         string memory config = DeployConfig.loadConfig();
 
-        DeployConfig.ExecutorParams memory executorParams   = DeployConfig.readExecutorParams(config);
-        address                            sourceAuthority = DeployConfig.readSourceAuthority(config);
+        DeployExecutor.ExecutorParams   memory executorParams = DeployExecutor.readExecutorParams(config);
+        OptimismReceiverDeploy.Params   memory receiverParams = OptimismReceiverDeploy.read(config);
 
-        VerificationHelpers.validateExecutorParams(executorParams, true);
-        VerificationHelpers.validateSourceAuthority(sourceAuthority);
+        DeployExecutor.validateExecutorParams(executorParams, true);
+        OptimismReceiverDeploy.validate(receiverParams);
 
         address executor = executorParams.existingAddress;
 
         vm.startBroadcast();
 
-        address receiver = address(new OptimismReceiver(sourceAuthority, executor));
+        address receiver = address(new OptimismReceiver(receiverParams.sourceAuthority, executor));
 
         vm.stopBroadcast();
 
         console.log("receiver deployed at:", receiver);
         console.log("re-using executor at :", executor);
 
-        Verify.verifyOptimismReceiverDeployment({
-            executor                : executor,
-            receiver                : receiver,
-            expectedSourceAuthority : sourceAuthority
+        OptimismReceiverDeploy.verifyReceiverOnly({
+            executor       : executor,
+            receiver       : receiver,
+            receiverParams : receiverParams
         });
     }
 

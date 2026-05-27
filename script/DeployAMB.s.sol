@@ -6,9 +6,9 @@ import { Script }  from "forge-std/Script.sol";
 
 import { AMBReceiver } from "lib/xchain-helpers/src/receivers/AMBReceiver.sol";
 
-import { DeployConfig }        from "../deploy/DeployConfig.sol";
-import { Verify }              from "../deploy/Verify.sol";
-import { VerificationHelpers } from "../deploy/VerificationHelpers.sol";
+import { AMBReceiverDeploy } from "../deploy/AMBReceiverDeploy.sol";
+import { DeployConfig }      from "../deploy/DeployConfig.sol";
+import { DeployExecutor }    from "../deploy/DeployExecutor.sol";
 
 import { Executor } from "src/Executor.sol";
 
@@ -18,20 +18,6 @@ import { Executor } from "src/Executor.sol";
  * @dev Required env vars:
  *      - RPC_URL: RPC endpoint of the destination chain
  *      - CONFIG : config slug, file `script/config/<CONFIG>.json` must exist
- *
- *      JSON schema:
- *      {
- *        "executor": {
- *          "address":     "0x0000...0000",   // must be unset for full deploy
- *          "delay":       <uint>,
- *          "gracePeriod": <uint>
- *        },
- *        "receiver": {
- *          "amb":             "0x...",       // local AMB contract address
- *          "sourceChainId":   <uint>,        // source chain id, e.g. 1 for Ethereum
- *          "sourceAuthority": "0x..."        // source authority address
- *        }
- *      }
  */
 contract DeployAMBFull is Script {
 
@@ -40,11 +26,11 @@ contract DeployAMBFull is Script {
 
         string memory config = DeployConfig.loadConfig();
 
-        DeployConfig.ExecutorParams    memory executorParams = DeployConfig.readExecutorParams(config);
-        DeployConfig.AMBReceiverParams memory receiverParams = DeployConfig.readAMBReceiverParams(config);
+        DeployExecutor.ExecutorParams memory executorParams = DeployExecutor.readExecutorParams(config);
+        AMBReceiverDeploy.Params      memory receiverParams = AMBReceiverDeploy.read(config);
 
-        VerificationHelpers.validateExecutorParams(executorParams, false);
-        VerificationHelpers.validateAMBReceiverParams(receiverParams);
+        DeployExecutor.validateExecutorParams(executorParams, false);
+        AMBReceiverDeploy.validate(receiverParams);
 
         vm.startBroadcast();
 
@@ -56,27 +42,21 @@ contract DeployAMBFull is Script {
             _target          : address(executor)
         }));
 
-        executor.grantRole(executor.SUBMISSION_ROLE(),     receiver);
-        executor.revokeRole(executor.DEFAULT_ADMIN_ROLE(), msg.sender);
+        DeployExecutor.setUpPermissions(executor, receiver, msg.sender);
 
         vm.stopBroadcast();
 
         console.log("executor deployed at:", address(executor));
         console.log("receiver deployed at:", receiver);
 
-        Verify.verifyAMBDeployment({
-            deployment : Verify.Deployment({
+        AMBReceiverDeploy.verifyFull({
+            deployment : DeployExecutor.Deployment({
                 executor : address(executor),
                 receiver : receiver,
                 deployer : msg.sender
             }),
-            params : Verify.ExecutorParams({
-                delay       : executorParams.delay,
-                gracePeriod : executorParams.gracePeriod
-            }),
-            amb                     : receiverParams.amb,
-            expectedSourceChainId   : receiverParams.sourceChainId,
-            expectedSourceAuthority : receiverParams.sourceAuthority
+            executorParams : executorParams,
+            receiverParams : receiverParams
         });
     }
 
@@ -92,8 +72,8 @@ contract DeployAMBFull is Script {
  *      `executor.address` in the JSON config must be the address of the already-deployed
  *      executor on the destination chain.
  *
- *      Note: this script does NOT call setUpExecutorPermissions - granting the new receiver
- *      its SUBMISSION_ROLE on the existing executor must be done via a governance payload,
+ *      Note: this script does NOT call setUpPermissions - granting the new receiver its
+ *      SUBMISSION_ROLE on the existing executor must be done via a governance payload,
  *      since the deployer no longer holds DEFAULT_ADMIN_ROLE on the executor after the
  *      original deployment.
  */
@@ -104,11 +84,11 @@ contract DeployAMBReceiverOnly is Script {
 
         string memory config = DeployConfig.loadConfig();
 
-        DeployConfig.ExecutorParams    memory executorParams = DeployConfig.readExecutorParams(config);
-        DeployConfig.AMBReceiverParams memory receiverParams = DeployConfig.readAMBReceiverParams(config);
+        DeployExecutor.ExecutorParams memory executorParams = DeployExecutor.readExecutorParams(config);
+        AMBReceiverDeploy.Params      memory receiverParams = AMBReceiverDeploy.read(config);
 
-        VerificationHelpers.validateExecutorParams(executorParams, true);
-        VerificationHelpers.validateAMBReceiverParams(receiverParams);
+        DeployExecutor.validateExecutorParams(executorParams, true);
+        AMBReceiverDeploy.validate(receiverParams);
 
         address executor = executorParams.existingAddress;
 
@@ -126,12 +106,10 @@ contract DeployAMBReceiverOnly is Script {
         console.log("receiver deployed at:", receiver);
         console.log("re-using executor at :", executor);
 
-        Verify.verifyAMBReceiverDeployment({
-            receiver                : receiver,
-            executor                : executor,
-            amb                     : receiverParams.amb,
-            expectedSourceChainId   : receiverParams.sourceChainId,
-            expectedSourceAuthority : receiverParams.sourceAuthority
+        AMBReceiverDeploy.verifyReceiverOnly({
+            executor       : executor,
+            receiver       : receiver,
+            receiverParams : receiverParams
         });
     }
 

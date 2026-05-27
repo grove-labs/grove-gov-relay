@@ -6,9 +6,9 @@ import { Script }  from "forge-std/Script.sol";
 
 import { CCTPv2Receiver } from "lib/xchain-helpers/src/receivers/CCTPv2Receiver.sol";
 
-import { DeployConfig }        from "../deploy/DeployConfig.sol";
-import { Verify }              from "../deploy/Verify.sol";
-import { VerificationHelpers } from "../deploy/VerificationHelpers.sol";
+import { CCTPv2ReceiverDeploy } from "../deploy/CCTPv2ReceiverDeploy.sol";
+import { DeployConfig }         from "../deploy/DeployConfig.sol";
+import { DeployExecutor }       from "../deploy/DeployExecutor.sol";
 
 import { Executor } from "src/Executor.sol";
 
@@ -20,20 +20,6 @@ import { Executor } from "src/Executor.sol";
  *      Required env vars:
  *      - RPC_URL: RPC endpoint of the destination chain
  *      - CONFIG : config slug, file `script/config/<CONFIG>.json` must exist
- *
- *      JSON schema:
- *      {
- *        "executor": {
- *          "address":     "0x0000...0000",   // must be unset for full deploy
- *          "delay":       <uint>,
- *          "gracePeriod": <uint>
- *        },
- *        "receiver": {
- *          "destinationMessenger": "0x...",  // CCTP v2 MessageTransmitter
- *          "sourceDomainId":       <uint32>,
- *          "sourceAuthority":      "0x..."
- *        }
- *      }
  */
 contract DeployCCTPv2Full is Script {
 
@@ -42,11 +28,11 @@ contract DeployCCTPv2Full is Script {
 
         string memory config = DeployConfig.loadConfig();
 
-        DeployConfig.ExecutorParams     memory executorParams = DeployConfig.readExecutorParams(config);
-        DeployConfig.CctpReceiverParams memory receiverParams = DeployConfig.readCctpReceiverParams(config);
+        DeployExecutor.ExecutorParams memory executorParams = DeployExecutor.readExecutorParams(config);
+        CCTPv2ReceiverDeploy.Params   memory receiverParams = CCTPv2ReceiverDeploy.read(config);
 
-        VerificationHelpers.validateExecutorParams(executorParams, false);
-        VerificationHelpers.validateCctpReceiverParams(receiverParams);
+        DeployExecutor.validateExecutorParams(executorParams, false);
+        CCTPv2ReceiverDeploy.validate(receiverParams);
 
         bytes32 sourceAuthorityBytes32 = bytes32(uint256(uint160(receiverParams.sourceAuthority)));
 
@@ -60,27 +46,21 @@ contract DeployCCTPv2Full is Script {
             _target               : address(executor)
         }));
 
-        executor.grantRole(executor.SUBMISSION_ROLE(),     receiver);
-        executor.revokeRole(executor.DEFAULT_ADMIN_ROLE(), msg.sender);
+        DeployExecutor.setUpPermissions(executor, receiver, msg.sender);
 
         vm.stopBroadcast();
 
         console.log("executor deployed at:", address(executor));
         console.log("receiver deployed at:", receiver);
 
-        Verify.verifyCctpV2Deployment({
-            deployment : Verify.Deployment({
+        CCTPv2ReceiverDeploy.verifyFull({
+            deployment : DeployExecutor.Deployment({
                 executor : address(executor),
                 receiver : receiver,
                 deployer : msg.sender
             }),
-            params : Verify.ExecutorParams({
-                delay       : executorParams.delay,
-                gracePeriod : executorParams.gracePeriod
-            }),
-            cctpV2MessageTransmitter : receiverParams.destinationMessenger,
-            expectedSourceDomainId   : receiverParams.sourceDomainId,
-            expectedSourceAuthority  : sourceAuthorityBytes32
+            executorParams : executorParams,
+            receiverParams : receiverParams
         });
     }
 
@@ -98,8 +78,8 @@ contract DeployCCTPv2Full is Script {
  *      `executor.address` in the JSON config must be the address of the already-deployed
  *      executor on the destination chain.
  *
- *      Note: this script does NOT call setUpExecutorPermissions - granting the new receiver
- *      its SUBMISSION_ROLE on the existing executor must be done via a governance payload,
+ *      Note: this script does NOT call setUpPermissions - granting the new receiver its
+ *      SUBMISSION_ROLE on the existing executor must be done via a governance payload,
  *      since the deployer no longer holds DEFAULT_ADMIN_ROLE on the executor after the
  *      original deployment.
  */
@@ -110,11 +90,11 @@ contract DeployCCTPv2ReceiverOnly is Script {
 
         string memory config = DeployConfig.loadConfig();
 
-        DeployConfig.ExecutorParams     memory executorParams = DeployConfig.readExecutorParams(config);
-        DeployConfig.CctpReceiverParams memory receiverParams = DeployConfig.readCctpReceiverParams(config);
+        DeployExecutor.ExecutorParams memory executorParams = DeployExecutor.readExecutorParams(config);
+        CCTPv2ReceiverDeploy.Params   memory receiverParams = CCTPv2ReceiverDeploy.read(config);
 
-        VerificationHelpers.validateExecutorParams(executorParams, true);
-        VerificationHelpers.validateCctpReceiverParams(receiverParams);
+        DeployExecutor.validateExecutorParams(executorParams, true);
+        CCTPv2ReceiverDeploy.validate(receiverParams);
 
         address executor               = executorParams.existingAddress;
         bytes32 sourceAuthorityBytes32 = bytes32(uint256(uint160(receiverParams.sourceAuthority)));
@@ -133,12 +113,10 @@ contract DeployCCTPv2ReceiverOnly is Script {
         console.log("receiver deployed at:", receiver);
         console.log("re-using executor at :", executor);
 
-        Verify.verifyCctpV2ReceiverDeployment({
-            receiver                 : receiver,
-            executor                 : executor,
-            cctpV2MessageTransmitter : receiverParams.destinationMessenger,
-            expectedSourceDomainId   : receiverParams.sourceDomainId,
-            expectedSourceAuthority  : sourceAuthorityBytes32
+        CCTPv2ReceiverDeploy.verifyReceiverOnly({
+            executor       : executor,
+            receiver       : receiver,
+            receiverParams : receiverParams
         });
     }
 
