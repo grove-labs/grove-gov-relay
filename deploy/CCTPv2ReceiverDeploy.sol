@@ -24,7 +24,10 @@ library CCTPv2ReceiverDeploy {
 
     function read(string memory config) internal pure returns (Params memory p) {
         p.destinationMessenger = config.readAddress(".receiver.destinationMessenger");
-        p.sourceDomainId       = uint32(config.readUint(".receiver.sourceDomainId"));
+        p.sourceDomainId       = VerificationHelpers.requireFitsUint32(
+            config.readUint(".receiver.sourceDomainId"),
+            "receiver.sourceDomainId"
+        );
         p.sourceAuthority      = config.readAddress(".receiver.sourceAuthority");
     }
 

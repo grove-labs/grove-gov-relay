@@ -24,4 +24,14 @@ library VerificationHelpers {
         require(a.code.length != 0, string.concat("VerificationHelpers/no-code-at-address: ", name));
     }
 
+    function requireFitsUint32(uint256 v, string memory name) internal pure returns (uint32) {
+        require(v <= type(uint32).max, string.concat("VerificationHelpers/value-exceeds-uint32: ", name));
+        return uint32(v);
+    }
+
+    function requireFitsUint8(uint256 v, string memory name) internal pure returns (uint8) {
+        require(v <= type(uint8).max, string.concat("VerificationHelpers/value-exceeds-uint8: ", name));
+        return uint8(v);
+    }
+
 }

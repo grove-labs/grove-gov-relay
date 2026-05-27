@@ -33,16 +33,25 @@ library LZReceiverDeploy {
 
     function read(string memory config) internal pure returns (Params memory p) {
         p.destinationEndpoint = config.readAddress(".receiver.destinationEndpoint");
-        p.srcEid              = uint32(config.readUint(".receiver.srcEid"));
+        p.srcEid              = VerificationHelpers.requireFitsUint32(
+            config.readUint(".receiver.srcEid"),
+            "receiver.srcEid"
+        );
         p.sourceAuthority     = config.readAddress(".receiver.sourceAuthority");
         p.delegate            = config.readAddress(".receiver.delegate");
         p.owner               = config.readAddress(".receiver.owner");
 
         p.ulnConfig = LZReceiver.UlConfigParams({
-            confirmations        : uint32(config.readUint(".receiver.ulnConfig.confirmations")),
+            confirmations        : VerificationHelpers.requireFitsUint32(
+                config.readUint(".receiver.ulnConfig.confirmations"),
+                "receiver.ulnConfig.confirmations"
+            ),
             requiredDVNs         : config.readAddressArray(".receiver.ulnConfig.requiredDVNs"),
             optionalDVNs         : config.readAddressArray(".receiver.ulnConfig.optionalDVNs"),
-            optionalDVNThreshold : uint8(config.readUint(".receiver.ulnConfig.optionalDVNThreshold"))
+            optionalDVNThreshold : VerificationHelpers.requireFitsUint8(
+                config.readUint(".receiver.ulnConfig.optionalDVNThreshold"),
+                "receiver.ulnConfig.optionalDVNThreshold"
+            )
         });
     }
 

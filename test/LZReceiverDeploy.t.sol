@@ -11,6 +11,10 @@ contract LZReceiverDeployHarness {
         LZReceiverDeploy.validate(p);
     }
 
+    function read(string memory config) external pure returns (LZReceiverDeploy.Params memory) {
+        return LZReceiverDeploy.read(config);
+    }
+
 }
 
 contract LZReceiverDeployTests is Test {
@@ -89,6 +93,57 @@ contract LZReceiverDeployTests is Test {
 
         vm.expectRevert("VerificationHelpers/zero-address: receiver.delegate");
         harness.validate(p);
+    }
+
+    function _ulnConfigJson(uint256 confirmations, uint256 optionalDVNThreshold)
+        internal
+        pure
+        returns (string memory)
+    {
+        return string.concat(
+            '"ulnConfig":{'
+                '"confirmations":',          vm.toString(confirmations),         ','
+                '"requiredDVNs":["0x282b3386571f7f794450d5789911a9804FA346b4"],'
+                '"optionalDVNs":[],'
+                '"optionalDVNThreshold":',   vm.toString(optionalDVNThreshold),
+            '}'
+        );
+    }
+
+    function _lzConfigJson(uint256 srcEid, uint256 confirmations, uint256 optionalDVNThreshold)
+        internal
+        pure
+        returns (string memory)
+    {
+        return string.concat(
+            '{"executor":{"delay":0,"gracePeriod":86400},'
+            '"receiver":{'
+                '"destinationEndpoint":"0x6F475642a6e85809B1c36Fa62763669b1b48DD5B",'
+                '"srcEid":',             vm.toString(srcEid), ','
+                '"sourceAuthority":"0x1369f7b2b38c76B6478c0f0E66D94923421891Ba",'
+                '"delegate":"0x0000000000000000000000000000000000000001",'
+                '"owner":"0x0000000000000000000000000000000000000001",',
+                _ulnConfigJson(confirmations, optionalDVNThreshold),
+            '}}'
+        );
+    }
+
+    function test_read_revertsOnSrcEidOverflow() public {
+        string memory config = _lzConfigJson(uint256(type(uint32).max) + 1, 1, 0);
+        vm.expectRevert("VerificationHelpers/value-exceeds-uint32: receiver.srcEid");
+        harness.read(config);
+    }
+
+    function test_read_revertsOnConfirmationsOverflow() public {
+        string memory config = _lzConfigJson(1, uint256(type(uint32).max) + 1, 0);
+        vm.expectRevert("VerificationHelpers/value-exceeds-uint32: receiver.ulnConfig.confirmations");
+        harness.read(config);
+    }
+
+    function test_read_revertsOnOptionalDVNThresholdOverflow() public {
+        string memory config = _lzConfigJson(1, 1, uint256(type(uint8).max) + 1);
+        vm.expectRevert("VerificationHelpers/value-exceeds-uint8: receiver.ulnConfig.optionalDVNThreshold");
+        harness.read(config);
     }
 
 }

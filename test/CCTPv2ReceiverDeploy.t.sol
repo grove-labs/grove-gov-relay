@@ -11,6 +11,10 @@ contract CCTPv2ReceiverDeployHarness {
         CCTPv2ReceiverDeploy.validate(p);
     }
 
+    function read(string memory config) external pure returns (CCTPv2ReceiverDeploy.Params memory) {
+        return CCTPv2ReceiverDeploy.read(config);
+    }
+
 }
 
 contract CCTPv2ReceiverDeployTests is Test {
@@ -54,6 +58,20 @@ contract CCTPv2ReceiverDeployTests is Test {
         });
         vm.expectRevert("VerificationHelpers/no-code-at-address: receiver.destinationMessenger");
         harness.validate(p);
+    }
+
+    function test_read_revertsOnSourceDomainIdOverflow() public {
+        // 2**32 (uint32.max + 1) silently truncates to 0 without the range check.
+        string memory config =
+            '{"executor":{"delay":0,"gracePeriod":86400},'
+            '"receiver":{'
+                '"destinationMessenger":"0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",'
+                '"sourceDomainId":4294967296,'
+                '"sourceAuthority":"0x1369f7b2b38c76B6478c0f0E66D94923421891Ba"'
+            '}}';
+
+        vm.expectRevert("VerificationHelpers/value-exceeds-uint32: receiver.sourceDomainId");
+        harness.read(config);
     }
 
 }
