@@ -29,7 +29,9 @@ library DeployConfig {
     /**
      * @notice Loads the JSON config file for this deployment.
      * @param  defaultSlug Fallback file slug used when the `CONFIG` env var is unset.
-     *                     Convention: `<receiver>.<chain>` (e.g. `arbitrum.arbitrum-one`).
+     *                     Convention: `<receiver>.<chain>` where `<chain>` is the exact
+     *                     forge alias returned by `BaseDeployScript.selectChain()`
+     *                     (e.g. `arbitrum.arbitrum_one`, not `arbitrum.arbitrum-one`).
      * @return config      The raw JSON payload as a string.
      */
     function loadConfig(string memory defaultSlug) internal returns (string memory config) {
