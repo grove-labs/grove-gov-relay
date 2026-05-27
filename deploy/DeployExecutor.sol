@@ -61,7 +61,13 @@ library DeployExecutor {
             );
         } else {
             VerificationHelpers.requireZero(p.existingAddress, "executor.address");
-            // delay/gracePeriod are intentionally not constrained here; arbitrary values are valid.
+            // Mirror Executor's constructor invariant (`Executor.MINIMUM_GRACE_PERIOD = 10 minutes`)
+            // so a misconfigured grace period fails locally before any broadcasted tx is sent.
+            // `delay` is intentionally unconstrained (the Executor accepts any uint256).
+            require(
+                p.gracePeriod >= 10 minutes,
+                "DeployExecutor/executor-grace-period-below-minimum"
+            );
         }
     }
 
