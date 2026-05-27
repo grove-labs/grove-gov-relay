@@ -116,10 +116,10 @@ VERIFY      ?= --verify
     deploy-optimism-full-optimism         deploy-optimism-receiver-optimism \
     deploy-optimism-full-base             deploy-optimism-receiver-base \
     deploy-optimism-full-unichain         deploy-optimism-receiver-unichain \
-    deploy-optimism-full-monad            deploy-optimism-receiver-monad \
     deploy-cctp-v2-full-avalanche         deploy-cctp-v2-receiver-avalanche \
-    deploy-lz-full-plasma                 deploy-lz-receiver-plasma \
     deploy-lz-full-avalanche              deploy-lz-receiver-avalanche \
+    deploy-lz-full-plasma                 deploy-lz-receiver-plasma \
+    deploy-lz-full-monad                  deploy-lz-receiver-monad \
     deploy-amb-full-gnosis                deploy-amb-receiver-gnosis
 
 # -----------------------------------------------------------------------------
@@ -183,11 +183,6 @@ deploy-optimism-full-unichain:         deploy-optimism-full
 deploy-optimism-receiver-unichain:     CHAIN := unichain
 deploy-optimism-receiver-unichain:     deploy-optimism-receiver
 
-deploy-optimism-full-monad:            CHAIN := monad
-deploy-optimism-full-monad:            deploy-optimism-full
-deploy-optimism-receiver-monad:        CHAIN := monad
-deploy-optimism-receiver-monad:        deploy-optimism-receiver
-
 # CCTP v2
 deploy-cctp-v2-full-avalanche:         CHAIN := avalanche
 deploy-cctp-v2-full-avalanche:         deploy-cctp-v2-full
@@ -195,15 +190,20 @@ deploy-cctp-v2-receiver-avalanche:     CHAIN := avalanche
 deploy-cctp-v2-receiver-avalanche:     deploy-cctp-v2-receiver
 
 # LayerZero
+deploy-lz-full-avalanche:              CHAIN := avalanche
+deploy-lz-full-avalanche:              deploy-lz-full
+deploy-lz-receiver-avalanche:          CHAIN := avalanche
+deploy-lz-receiver-avalanche:          deploy-lz-receiver
+
 deploy-lz-full-plasma:                 CHAIN := plasma
 deploy-lz-full-plasma:                 deploy-lz-full
 deploy-lz-receiver-plasma:             CHAIN := plasma
 deploy-lz-receiver-plasma:             deploy-lz-receiver
 
-deploy-lz-full-avalanche:              CHAIN := avalanche
-deploy-lz-full-avalanche:              deploy-lz-full
-deploy-lz-receiver-avalanche:          CHAIN := avalanche
-deploy-lz-receiver-avalanche:          deploy-lz-receiver
+deploy-lz-full-monad:                  CHAIN := monad
+deploy-lz-full-monad:                  deploy-lz-full
+deploy-lz-receiver-monad:              CHAIN := monad
+deploy-lz-receiver-monad:              deploy-lz-receiver
 
 # AMB
 deploy-amb-full-gnosis:                CHAIN := gnosis_chain
