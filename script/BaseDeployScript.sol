@@ -61,16 +61,22 @@ abstract contract BaseDeployScript is Script {
     }
 
     /**
-     * @notice Resolves the destination chain from environment variables, registers it
-     *         in forge's chain registry if needed, switches the in-memory fork to it
-     *         and asserts `block.chainid` matches the resolved chain.
+     * @notice Pure-logic core of chain resolution. Takes env-var values as plain arguments
+     *         so it can be unit-tested with arbitrary combinations.
      *
-     * @return chainName Forge-registry alias of the chain (e.g. "optimism", "plume",
-     *                   or any operator-chosen alias for tier 3).
-     * @return chainId   Numeric chain id of that chain.
+     * @param  chainName Operator-supplied CHAIN alias (must be non-empty).
+     * @param  adHocRpc  Optional CHAIN_RPC_URL for tier-3 ad-hoc registration ("" if unused).
+     * @param  adHocId   Optional CHAIN_ID for tier-3 ad-hoc registration (0 if unused).
+     * @return c         Fully-resolved chain ready to be forked against.
+     *
+     * @dev Validates: CHAIN is set; CHAIN_RPC_URL and CHAIN_ID are both set or neither;
+     *      and the resolved chain has a non-empty rpcUrl after tier 1/2/3 resolution.
      */
-    function selectChain() internal returns (string memory chainName, uint256 chainId) {
-        chainName = vm.envOr("CHAIN", string(""));
+    function resolveChainFromInputs(
+        string memory chainName,
+        string memory adHocRpc,
+        uint256       adHocId
+    ) internal returns (StdChains.Chain memory c) {
         require(
             bytes(chainName).length > 0,
             "BaseDeployScript/missing-CHAIN-env-var: set CHAIN=<alias> (see Makefile header for tier 1/2/3 examples)"
@@ -81,33 +87,54 @@ abstract contract BaseDeployScript is Script {
 
         // Tier 3: ad-hoc chain provided entirely at runtime. Overrides any registration
         // made by tier 1 or tier 2 if both `CHAIN_RPC_URL` and `CHAIN_ID` are set.
-        string memory adHocRpc = vm.envOr("CHAIN_RPC_URL", string(""));
-        uint256       adHocId  = vm.envOr("CHAIN_ID",      uint256(0));
-        if (bytes(adHocRpc).length > 0 && adHocId != 0) {
+        bool rpcSet = bytes(adHocRpc).length > 0;
+        bool idSet  = adHocId != 0;
+        require(
+            rpcSet == idSet,
+            "BaseDeployScript/partial-ad-hoc-chain: set both CHAIN_RPC_URL and CHAIN_ID, or neither"
+        );
+        if (rpcSet) {
             setChain(chainName, StdChains.ChainData({
                 name    : chainName,
                 chainId : adHocId,
                 rpcUrl  : adHocRpc
             }));
-        } else {
-            require(
-                bytes(adHocRpc).length == 0 && adHocId == 0,
-                "BaseDeployScript/partial-ad-hoc-chain: set both CHAIN_RPC_URL and CHAIN_ID, or neither"
-            );
         }
 
-        StdChains.Chain memory c = getChain(chainName);
-        require(
-            bytes(c.rpcUrl).length > 0,
-            string.concat(
-                "BaseDeployScript/missing-rpc-url-for-chain: ",
-                chainName,
-                " (set the corresponding *_RPC_URL env var, or set CHAIN_RPC_URL+CHAIN_ID for an ad-hoc chain)"
-            )
+        // forge-std's `getChain` itself reverts with "invalid rpc url: <alias>" when no
+        // resolvable RPC URL exists for the chain (no entry in foundry.toml [rpc_endpoints],
+        // no `<ALIAS>_RPC_URL` env var, no built-in default). That check is enough; we don't
+        // duplicate it here.
+        c = getChain(chainName);
+    }
+
+    /**
+     * @notice Reads the `CHAIN`, `CHAIN_RPC_URL`, `CHAIN_ID` env vars and feeds them to
+     *         `resolveChainFromInputs`. Trivial wrapper, kept so the env-var IO is the only
+     *         non-unit-testable seam in the chain-selection flow.
+     */
+    function resolveChain() internal returns (StdChains.Chain memory) {
+        return resolveChainFromInputs(
+            vm.envOr("CHAIN",         string("")),
+            vm.envOr("CHAIN_RPC_URL", string("")),
+            vm.envOr("CHAIN_ID",      uint256(0))
         );
+    }
+
+    /**
+     * @notice Resolves the destination chain (`resolveChain`), forks against it, and asserts
+     *         `block.chainid` matches the resolved chain.
+     *
+     * @dev    The fork + chainId-assert tail of this function is intentionally not unit-tested
+     *         because it requires a real RPC; that piece is excluded from the coverage gate.
+     *         All testable resolution logic lives in `resolveChainFromInputs`.
+     */
+    function selectChain() internal returns (string memory chainName, uint256 chainId) {
+        StdChains.Chain memory c = resolveChain();
+        chainName = c.chainAlias;
+        chainId   = c.chainId;
 
         vm.createSelectFork(c.rpcUrl);
-        chainId = c.chainId;
 
         // Belt-and-braces: makes a wrong-chain deploy impossible even if a misconfigured
         // alias somehow points at the wrong RPC.

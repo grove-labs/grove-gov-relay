@@ -7,15 +7,24 @@ import { StdChains } from "forge-std/StdChains.sol";
 import { BaseDeployScript } from "../script/BaseDeployScript.sol";
 
 /**
- * @notice Concrete instance so we can call `selectChain` / `setUpNonStandardChains`
- *         externally for assertions. Tests don't actually call `vm.createSelectFork`
- *         (we'd need a real RPC for that); instead they exercise the registration
- *         logic directly via `setUpNonStandardChains` and `getChain`.
+ * @notice Concrete instance so we can call internal helpers externally for assertions.
+ *         `selectChain` is not unit-tested because its tail calls `vm.createSelectFork`
+ *         (requires a real RPC); the testable resolution kernel
+ *         `resolveChainFromInputs` is exercised here directly with plain arguments,
+ *         avoiding `vm.setEnv` cross-test contamination.
  */
 contract BaseDeployScriptHarness is BaseDeployScript {
 
     function callSetUpNonStandardChains() external {
         setUpNonStandardChains();
+    }
+
+    function callResolveChainFromInputs(
+        string memory chainName,
+        string memory adHocRpc,
+        uint256       adHocId
+    ) external returns (StdChains.Chain memory) {
+        return resolveChainFromInputs(chainName, adHocRpc, adHocId);
     }
 
     function readChain(string memory alias_) external returns (StdChains.Chain memory) {
@@ -46,9 +55,9 @@ contract BaseDeployScriptTests is Test {
         harness.callSetUpNonStandardChains();
 
         StdChains.Chain memory c = harness.readChain("plume");
-        assertEq(c.chainId,                          98866);
-        assertEq(c.name,                             "Plume");
-        assertEq(c.rpcUrl,                           "https://stub.plume.example");
+        assertEq(c.chainId, 98866);
+        assertEq(c.name,    "Plume");
+        assertEq(c.rpcUrl,  "https://stub.plume.example");
     }
 
     function test_setUpNonStandardChains_registersMonad() public {
@@ -74,7 +83,7 @@ contract BaseDeployScriptTests is Test {
     }
 
     /**********************************************************************************************/
-    /*** Tier 3: ad-hoc custom chain via setChain (mirrors what `selectChain` does internally)  ***/
+    /*** Tier 3: ad-hoc setChain primitive                                                      ***/
     /**********************************************************************************************/
 
     function test_setChain_registersAdHocChain() public {
@@ -90,6 +99,59 @@ contract BaseDeployScriptTests is Test {
         assertEq(got.name,       "newchain");
         assertEq(got.chainAlias, "newchain");
         assertEq(got.rpcUrl,     "https://stub.newchain.example");
+    }
+
+    /**********************************************************************************************/
+    /*** resolveChainFromInputs: env-var combinations & error paths                             ***/
+    /**********************************************************************************************/
+
+    function test_resolveChain_revertsOnMissingChain() public {
+        vm.expectRevert(
+            "BaseDeployScript/missing-CHAIN-env-var: set CHAIN=<alias> (see Makefile header for tier 1/2/3 examples)"
+        );
+        harness.callResolveChainFromInputs("", "", 0);
+    }
+
+    function test_resolveChain_revertsOnPartialAdHocRpcOnly() public {
+        vm.expectRevert(
+            "BaseDeployScript/partial-ad-hoc-chain: set both CHAIN_RPC_URL and CHAIN_ID, or neither"
+        );
+        harness.callResolveChainFromInputs("newchain", "https://stub.newchain.example", 0);
+    }
+
+    function test_resolveChain_revertsOnPartialAdHocIdOnly() public {
+        vm.expectRevert(
+            "BaseDeployScript/partial-ad-hoc-chain: set both CHAIN_RPC_URL and CHAIN_ID, or neither"
+        );
+        harness.callResolveChainFromInputs("newchain", "", 99999);
+    }
+
+    function test_resolveChain_revertsOnUnknownChainWithoutRpcUrl() public {
+        // Tier-2 chain (plume) with no PLUME_RPC_URL env var and no ad-hoc override.
+        // forge-std's getChain surfaces this with "invalid rpc url: <alias>".
+        vm.setEnv("PLUME_RPC_URL", "");
+        vm.expectRevert("invalid rpc url: plume");
+        harness.callResolveChainFromInputs("plume", "", 0);
+    }
+
+    function test_resolveChain_resolvesTier2Chain() public {
+        vm.setEnv("MONAD_RPC_URL", "https://stub.monad.example");
+
+        StdChains.Chain memory c = harness.callResolveChainFromInputs("monad", "", 0);
+        assertEq(c.chainAlias, "monad");
+        assertEq(c.chainId,    143);
+        assertEq(c.rpcUrl,     "https://stub.monad.example");
+    }
+
+    function test_resolveChain_resolvesAdHocTier3Chain() public {
+        StdChains.Chain memory c = harness.callResolveChainFromInputs(
+            "newchain",
+            "https://stub.newchain.example",
+            99999
+        );
+        assertEq(c.chainAlias, "newchain");
+        assertEq(c.chainId,    99999);
+        assertEq(c.rpcUrl,     "https://stub.newchain.example");
     }
 
 }
