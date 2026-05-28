@@ -103,10 +103,22 @@
 # Etherscan verification
 # -----------------------------------------------------------------------------
 # `--verify` is always passed; forge uses the `[etherscan]` block in
-# foundry.toml plus your `ETHERSCAN_API_KEY` (Etherscan v2 unified key) to
-# pick the right endpoint based on the runtime chainId. For chains without
-# Etherscan-family support, override via `FORGE_FLAGS=--verifier blockscout
-# --verifier-url https://...` or skip verification by overriding `VERIFY=`.
+# foundry.toml plus your env-supplied API keys to pick the right endpoint based
+# on the runtime chainId. Required env vars:
+#
+#   ETHERSCAN_API_KEY      Etherscan v2 unified key. Covers mainnet, optimism,
+#                          base, gnosis_chain, arbitrum_one, avalanche (and any
+#                          future chain we add to the v2 block in foundry.toml).
+#
+#   WORLD_CHAIN_API_KEY    Alchemy-hosted explorer for World Chain. Required
+#                          only if you deploy to world_chain.
+#
+#   UNICHAIN_API_KEY       Blockscout-hosted explorer for Unichain. Required
+#                          only if you deploy to unichain.
+#
+# For chains without an Etherscan-family or pre-wired explorer, override via
+# `FORGE_FLAGS=--verifier blockscout --verifier-url https://...` or skip
+# verification by overriding `VERIFY=`.
 #
 # -----------------------------------------------------------------------------
 # Authentication

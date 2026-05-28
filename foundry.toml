@@ -18,10 +18,19 @@ remappings = [
 ]
 
 [etherscan]
-mainnet = { key = "${MAINNET_API_KEY}" }
-optimism = { key = "${OPTIMISMSCAN_API_KEY}" }
-base = { key = "${BASESCAN_API_KEY}" }
-gnosis_chain = { key = "${GNOSISSCAN_API_KEY}", url = "https://api.gnosisscan.io/api" }
-arbitrum_one = { key = "${ARBISCAN_API_KEY}" }
-world_chain = { key = "${WORLD_CHAIN_API_KEY}", chain = 480, url = "https://worldchain-mainnet-explorer.alchemy.com/api" }
-unichain = { key = "${UNICHAIN_API_KEY}", chain = 130, url = "https://unichain.blockscout.com/api" }
+# Etherscan v2 unified key (`ETHERSCAN_API_KEY`) - one key covers every chain whose
+# verifier is hosted by Etherscan. The `chain` field tells forge which chainId the
+# v2 endpoint should target.
+mainnet      = { key = "${ETHERSCAN_API_KEY}", chain = 1 }
+optimism     = { key = "${ETHERSCAN_API_KEY}", chain = 10 }
+base         = { key = "${ETHERSCAN_API_KEY}", chain = 8453 }
+gnosis_chain = { key = "${ETHERSCAN_API_KEY}", chain = 100 }
+arbitrum_one = { key = "${ETHERSCAN_API_KEY}", chain = 42161 }
+avalanche    = { key = "${ETHERSCAN_API_KEY}", chain = 43114 }
+
+# Non-Etherscan verifiers - these need their own dedicated API keys because the
+# explorers are not part of the Etherscan v2 federation:
+#   - world_chain : Alchemy-hosted explorer
+#   - unichain    : Blockscout-hosted explorer
+world_chain  = { key = "${WORLD_CHAIN_API_KEY}", chain = 480, url = "https://worldchain-mainnet-explorer.alchemy.com/api" }
+unichain     = { key = "${UNICHAIN_API_KEY}",   chain = 130, url = "https://unichain.blockscout.com/api" }
