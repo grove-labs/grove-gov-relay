@@ -73,6 +73,29 @@
 # explicitly with `CONFIG=<slug>` (useful for staging / per-environment files
 # such as `arbitrum.plume.staging`).
 #
+# IMPORTANT: this repo only ships `<receiver>.example.json` templates, NOT
+# per-chain config files. Preparing the actual config is the operator's
+# responsibility for every deployment - the templates exist solely to document
+# the expected JSON shape. Typical first-time workflow for a new chain:
+#
+#   cp script/config/<receiver>.example.json script/config/<receiver>.<chain>.json
+#   $EDITOR script/config/<receiver>.<chain>.json   # fill in live addresses
+#   CHAIN=<chain> <ALIAS>_RPC_URL=... make deploy-<receiver>-full
+#
+# If the per-chain file is missing, `DeployConfig` prints the expected path,
+# lists what's available under `script/config/`, and reverts with
+# `DeployConfig/config-not-found` before any tx is broadcasted.
+#
+# -----------------------------------------------------------------------------
+# Pre-wired shortcuts vs. generic targets
+# -----------------------------------------------------------------------------
+# Targets named `deploy-<receiver>-{full,receiver}-<chain>` (e.g.
+# `deploy-arbitrum-full-arbitrum_one`) are PURELY convenience wrappers that
+# set `CHAIN := <forge-alias>` and delegate to the generic target. They make
+# no extra guarantees - they still require the per-chain JSON config above
+# and the matching `<ALIAS>_RPC_URL` env var. Operators on a chain that
+# isn't pre-wired should call the generic target directly with `CHAIN=...`.
+#
 # -----------------------------------------------------------------------------
 # Etherscan verification
 # -----------------------------------------------------------------------------
@@ -151,6 +174,11 @@ deploy-amb-receiver      :; forge script script/DeployAMB.s.sol:DeployAMBReceive
 # `PLUME_RPC_URL`, `ARBITRUM_ONE_RPC_URL`). The default `CONFIG` slug derived
 # by the script is `<receiver>.<CHAIN>` - operators only override `CONFIG` for
 # bespoke per-environment files.
+#
+# These targets are convenience wrappers ONLY - they do not ship a per-chain
+# JSON config. Before invoking one of them, ensure
+# `script/config/<receiver>.<CHAIN>.json` exists (see the "Config files"
+# section in the header for the copy-and-edit workflow).
 #
 # To add another pre-wired chain: copy a block below and change `CHAIN`.
 # To target a chain that is NOT pre-wired here, just set `CHAIN` (and the
