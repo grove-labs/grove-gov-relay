@@ -126,8 +126,10 @@ abstract contract BaseDeployScript is Script {
      *         `block.chainid` matches the resolved chain.
      *
      * @dev    The fork + chainId-assert tail of this function is intentionally not unit-tested
-     *         because it requires a real RPC; that piece is excluded from the coverage gate.
-     *         All testable resolution logic lives in `resolveChainFromInputs`.
+     *         because it requires a real RPC. The file as a whole stays in the CI coverage
+     *         gate (see `.github/workflows/ci.yml`) so expect partial coverage on these last
+     *         three lines; all testable resolution logic was extracted into
+     *         `resolveChainFromInputs` precisely to keep the uncovered surface this small.
      */
     function selectChain() internal returns (string memory chainName, uint256 chainId) {
         StdChains.Chain memory c = resolveChain();

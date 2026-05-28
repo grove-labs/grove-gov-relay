@@ -7,11 +7,20 @@ import { Executor } from "../src/Executor.sol";
 
 import { DeployExecutor } from "../deploy/DeployExecutor.sol";
 
-// Wrapper that re-exposes library functions externally so vm.expectRevert can observe reverts.
+// Wrapper that re-exposes library functions externally so vm.expectRevert can observe reverts,
+// and so that the harness itself owns the freshly-deployed Executor (i.e. holds DEFAULT_ADMIN_ROLE).
 contract DeployExecutorHarness {
 
     function validateExecutorParams(DeployExecutor.ExecutorParams memory ep, bool requireExisting) external view {
         DeployExecutor.validateExecutorParams(ep, requireExisting);
+    }
+
+    function deployExecutor(uint256 delay, uint256 gracePeriod) external returns (Executor) {
+        return new Executor(delay, gracePeriod);
+    }
+
+    function setUpPermissions(Executor executor, address receiver, address deployer) external {
+        DeployExecutor.setUpPermissions(executor, receiver, deployer);
     }
 
 }
@@ -152,6 +161,44 @@ contract DeployExecutorTests is Test {
         });
         vm.expectRevert("DeployExecutor/executor-grace-period-mismatch");
         harness.validateExecutorParams(ep, true);
+    }
+
+    /**********************************************************************************************/
+    /*** setUpPermissions: post-deploy role wiring                                              ***/
+    /**********************************************************************************************/
+
+    function test_setUpPermissions_grantsSubmissionAndRevokesDeployerAdmin() public {
+        Executor executor = harness.deployExecutor(1 hours, 7 days);
+        address  receiver = makeAddr("receiver");
+
+        bytes32 ADMIN      = executor.DEFAULT_ADMIN_ROLE();
+        bytes32 SUBMISSION = executor.SUBMISSION_ROLE();
+
+        // Pre-conditions: harness (the deployer) holds admin; receiver has no roles.
+        assertTrue (executor.hasRole(ADMIN,      address(harness)));
+        assertFalse(executor.hasRole(SUBMISSION, address(harness)));
+        assertFalse(executor.hasRole(SUBMISSION, receiver));
+
+        harness.setUpPermissions(executor, receiver, address(harness));
+
+        // Post-conditions: deployer admin revoked, receiver gained submission, executor self-admin
+        // is preserved (granted by the constructor, never touched here).
+        assertFalse(executor.hasRole(ADMIN,      address(harness)));
+        assertTrue (executor.hasRole(SUBMISSION, receiver));
+        assertTrue (executor.hasRole(ADMIN,      address(executor)));
+    }
+
+    function test_setUpPermissions_revokedDeployerCannotGrantFurther() public {
+        Executor executor = harness.deployExecutor(1 hours, 7 days);
+        address  receiver = makeAddr("receiver");
+
+        harness.setUpPermissions(executor, receiver, address(harness));
+
+        // Deployer no longer has admin -> any subsequent role grant from the harness must revert.
+        bytes32 SUBMISSION = executor.SUBMISSION_ROLE();
+        vm.prank(address(harness));
+        vm.expectRevert();
+        executor.grantRole(SUBMISSION, makeAddr("intruder"));
     }
 
 }

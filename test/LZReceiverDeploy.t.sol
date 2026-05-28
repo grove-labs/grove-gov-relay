@@ -190,4 +190,27 @@ contract LZReceiverDeployTests is Test {
         harness.validate(p);
     }
 
+    function test_validate_revertsOnOptionalThresholdExceedsOptionalDVNs() public {
+        LZReceiverDeploy.Params memory p = _baseValidParams();
+        p.ulnConfig.optionalDVNs         = new address[](1);
+        p.ulnConfig.optionalDVNs[0]      = _withCode("opt-dvn");
+        p.ulnConfig.optionalDVNThreshold = 2;  // > optionalDVNs.length (1)
+
+        vm.expectRevert("LZReceiverDeploy/optional-threshold-exceeds-optional-DVNs");
+        harness.validate(p);
+    }
+
+    function test_validate_passesOnOptionalDVNsOnly() public {
+        // Lock in the "no required DVNs, only optional with a non-zero threshold" shape -
+        // a regression that disallowed this configuration would otherwise pass the suite.
+        LZReceiverDeploy.Params memory p = _baseValidParams();
+        p.ulnConfig.requiredDVNs         = new address[](0);
+        p.ulnConfig.optionalDVNs         = new address[](2);
+        p.ulnConfig.optionalDVNs[0]      = _withCode("opt-dvn-0");
+        p.ulnConfig.optionalDVNs[1]      = _withCode("opt-dvn-1");
+        p.ulnConfig.optionalDVNThreshold = 2;
+
+        harness.validate(p);
+    }
+
 }

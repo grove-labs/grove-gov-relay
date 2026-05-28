@@ -63,7 +63,9 @@
 #   For etherscan-style verification on a brand-new chain, also set:
 #     FORGE_FLAGS="--verifier blockscout --verifier-url https://newchain-explorer/api"
 #   or pass an Etherscan v2-compatible key via `ETHERSCAN_API_KEY`. If the chain
-#   has no explorer at all, leave `--verify` out of FORGE_FLAGS (see below).
+#   has no explorer at all, override `VERIFY=` (which holds the `--verify` flag,
+#   not `FORGE_FLAGS`) to skip verification entirely (see "Etherscan verification"
+#   below).
 #
 # -----------------------------------------------------------------------------
 # Config files
