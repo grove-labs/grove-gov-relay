@@ -49,6 +49,11 @@ contract LZReceiverDeployTests is Test {
         assertEq(p.ulnConfig.optionalDVNThreshold,    0);
     }
 
+    function _withCode(string memory label) internal returns (address a) {
+        a = makeAddr(label);
+        vm.etch(a, hex"60006000fd");
+    }
+
     function _baseValidParams() internal returns (LZReceiverDeploy.Params memory p) {
         p.destinationEndpoint = address(this);
         p.srcEid              = 1;
@@ -58,7 +63,7 @@ contract LZReceiverDeployTests is Test {
 
         p.ulnConfig.confirmations        = 1;
         p.ulnConfig.requiredDVNs         = new address[](1);
-        p.ulnConfig.requiredDVNs[0]      = makeAddr("dvn");
+        p.ulnConfig.requiredDVNs[0]      = _withCode("dvn");
         p.ulnConfig.optionalDVNs         = new address[](0);
         p.ulnConfig.optionalDVNThreshold = 0;
     }
@@ -144,6 +149,45 @@ contract LZReceiverDeployTests is Test {
         string memory config = _lzConfigJson(1, 1, uint256(type(uint8).max) + 1);
         vm.expectRevert("VerificationHelpers/value-exceeds-uint8: receiver.ulnConfig.optionalDVNThreshold");
         harness.read(config);
+    }
+
+    function test_validate_revertsOnZeroAddressInRequiredDVNs() public {
+        LZReceiverDeploy.Params memory p = _baseValidParams();
+        p.ulnConfig.requiredDVNs    = new address[](2);
+        p.ulnConfig.requiredDVNs[0] = _withCode("dvn0");
+        p.ulnConfig.requiredDVNs[1] = address(0);
+
+        vm.expectRevert("VerificationHelpers/zero-address: receiver.ulnConfig.requiredDVNs[1]");
+        harness.validate(p);
+    }
+
+    function test_validate_revertsOnEoaInRequiredDVNs() public {
+        LZReceiverDeploy.Params memory p = _baseValidParams();
+        p.ulnConfig.requiredDVNs    = new address[](1);
+        p.ulnConfig.requiredDVNs[0] = makeAddr("eoa-dvn");
+
+        vm.expectRevert("VerificationHelpers/no-code-at-address: receiver.ulnConfig.requiredDVNs[0]");
+        harness.validate(p);
+    }
+
+    function test_validate_revertsOnZeroAddressInOptionalDVNs() public {
+        LZReceiverDeploy.Params memory p = _baseValidParams();
+        p.ulnConfig.optionalDVNs         = new address[](1);
+        p.ulnConfig.optionalDVNs[0]      = address(0);
+        p.ulnConfig.optionalDVNThreshold = 1;
+
+        vm.expectRevert("VerificationHelpers/zero-address: receiver.ulnConfig.optionalDVNs[0]");
+        harness.validate(p);
+    }
+
+    function test_validate_revertsOnEoaInOptionalDVNs() public {
+        LZReceiverDeploy.Params memory p = _baseValidParams();
+        p.ulnConfig.optionalDVNs         = new address[](1);
+        p.ulnConfig.optionalDVNs[0]      = makeAddr("eoa-optional-dvn");
+        p.ulnConfig.optionalDVNThreshold = 1;
+
+        vm.expectRevert("VerificationHelpers/no-code-at-address: receiver.ulnConfig.optionalDVNs[0]");
+        harness.validate(p);
     }
 
 }

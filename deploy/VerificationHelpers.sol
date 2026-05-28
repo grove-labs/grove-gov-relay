@@ -20,8 +20,20 @@ library VerificationHelpers {
     }
 
     function requireHasCode(address a, string memory name) internal view {
-        require(a != address(0),    string.concat("VerificationHelpers/zero-address: ",        name));
-        require(a.code.length != 0, string.concat("VerificationHelpers/no-code-at-address: ", name));
+        require(a != address(0), string.concat("VerificationHelpers/zero-address: ", name));
+
+        bytes memory code = a.code;
+        require(code.length != 0, string.concat("VerificationHelpers/no-code-at-address: ", name));
+
+        // EIP-7702 (Pectra): an EOA that has authorised a delegate has code that begins with
+        // the designator `0xef0100<delegate-20-bytes>`. `0xef` is a reserved opcode (EIP-3541),
+        // so any post-3541 contract bytecode cannot start with it - a `code[0] == 0xef` here
+        // unambiguously means a delegated EOA, not a real contract. Reject it: callers of this
+        // helper want an actual deployed contract, not an EOA pretending to be one via 7702.
+        require(
+            code.length < 3 || !(code[0] == 0xef && code[1] == 0x01 && code[2] == 0x00),
+            string.concat("VerificationHelpers/eip-7702-delegated-eoa: ", name)
+        );
     }
 
     function requireFitsUint32(uint256 v, string memory name) internal pure returns (uint32) {

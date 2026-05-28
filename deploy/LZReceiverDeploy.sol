@@ -3,6 +3,8 @@ pragma solidity ^0.8.0;
 
 import { stdJson } from "forge-std/StdJson.sol";
 
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
+
 import { UlnConfig } from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/UlnBase.sol";
 
 import { LZReceiver } from "lib/xchain-helpers/src/receivers/LZReceiver.sol";
@@ -70,6 +72,23 @@ library LZReceiverDeploy {
             p.ulnConfig.optionalDVNThreshold <= p.ulnConfig.optionalDVNs.length,
             "LZReceiverDeploy/optional-threshold-exceeds-optional-DVNs"
         );
+
+        // DVNs must be live contracts on the destination chain - otherwise the LZ endpoint
+        // will reject the ULN config at runtime (or, worse, accept a zeroed-out / EOA entry
+        // that yields an unusable security configuration). Validate each entry locally so
+        // misconfigurations fail before any broadcasted tx.
+        for (uint256 i = 0; i < p.ulnConfig.requiredDVNs.length; i++) {
+            VerificationHelpers.requireHasCode(
+                p.ulnConfig.requiredDVNs[i],
+                string.concat("receiver.ulnConfig.requiredDVNs[", Strings.toString(i), "]")
+            );
+        }
+        for (uint256 i = 0; i < p.ulnConfig.optionalDVNs.length; i++) {
+            VerificationHelpers.requireHasCode(
+                p.ulnConfig.optionalDVNs[i],
+                string.concat("receiver.ulnConfig.optionalDVNs[", Strings.toString(i), "]")
+            );
+        }
     }
 
     function verifyFull(
