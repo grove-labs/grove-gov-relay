@@ -90,11 +90,14 @@
 # Pre-wired shortcuts vs. generic targets
 # -----------------------------------------------------------------------------
 # Targets named `deploy-<receiver>-{full,receiver}-<chain>` (e.g.
-# `deploy-arbitrum-full-arbitrum_one`) are PURELY convenience wrappers that
+# `deploy-arbitrum-full-arbitrum-one`) are PURELY convenience wrappers that
 # set `CHAIN := <forge-alias>` and delegate to the generic target. They make
 # no extra guarantees - they still require the per-chain JSON config above
 # and the matching `<ALIAS>_RPC_URL` env var. Operators on a chain that
 # isn't pre-wired should call the generic target directly with `CHAIN=...`.
+# Note the make target name uses `-` for readability while the underlying
+# `CHAIN` value uses the exact forge alias (e.g. target `...-arbitrum-one`
+# sets `CHAIN := arbitrum_one`).
 #
 # -----------------------------------------------------------------------------
 # Etherscan verification
