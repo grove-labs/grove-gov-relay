@@ -160,7 +160,7 @@ VERIFY      ?= --verify
     deploy-lz-full-avalanche              deploy-lz-receiver-avalanche \
     deploy-lz-full-plasma                 deploy-lz-receiver-plasma \
     deploy-lz-full-monad                  deploy-lz-receiver-monad \
-    deploy-amb-full-gnosis                deploy-amb-receiver-gnosis
+    deploy-amb-full-gnosis-chain          deploy-amb-receiver-gnosis-chain
 
 # -----------------------------------------------------------------------------
 # Generic deployment targets.
@@ -251,7 +251,7 @@ deploy-lz-receiver-monad:              CHAIN := monad
 deploy-lz-receiver-monad:              deploy-lz-receiver
 
 # AMB
-deploy-amb-full-gnosis:                CHAIN := gnosis_chain
-deploy-amb-full-gnosis:                deploy-amb-full
-deploy-amb-receiver-gnosis:            CHAIN := gnosis_chain
-deploy-amb-receiver-gnosis:            deploy-amb-receiver
+deploy-amb-full-gnosis-chain:          CHAIN := gnosis_chain
+deploy-amb-full-gnosis-chain:          deploy-amb-full
+deploy-amb-receiver-gnosis-chain:      CHAIN := gnosis_chain
+deploy-amb-receiver-gnosis-chain:      deploy-amb-receiver
