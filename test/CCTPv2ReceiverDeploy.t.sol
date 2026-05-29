@@ -42,9 +42,9 @@ contract CCTPv2ReceiverDeployTests is Test {
 
     function test_validate_revertsOnZeroAuthority() public {
         CCTPv2ReceiverDeploy.Params memory p = CCTPv2ReceiverDeploy.Params({
-            destinationMessenger: address(this),
-            sourceDomainId:       0,
-            sourceAuthority:      address(0)
+            destinationMessenger : address(this),
+            sourceDomainId       : 0,
+            sourceAuthority      : address(0)
         });
         vm.expectRevert("VerificationHelpers/zero-address: receiver.sourceAuthority");
         harness.validate(p);
@@ -52,9 +52,9 @@ contract CCTPv2ReceiverDeployTests is Test {
 
     function test_validate_revertsOnMessengerWithoutCode() public {
         CCTPv2ReceiverDeploy.Params memory p = CCTPv2ReceiverDeploy.Params({
-            destinationMessenger: makeAddr("messenger"),
-            sourceDomainId:       0,
-            sourceAuthority:      makeAddr("auth")
+            destinationMessenger : makeAddr("messenger"),
+            sourceDomainId       : 0,
+            sourceAuthority      : makeAddr("auth")
         });
         vm.expectRevert("VerificationHelpers/no-code-at-address: receiver.destinationMessenger");
         harness.validate(p);
