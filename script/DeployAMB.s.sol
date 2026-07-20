@@ -47,7 +47,7 @@ contract DeployAMBFull is BaseDeployScript {
             _target          : address(executor)
         }));
 
-        DeployExecutor.setUpPermissions(executor, receiver, msg.sender);
+        DeployExecutor.setUpPermissions(executor, receiver, executorParams.guardian, msg.sender);
 
         vm.stopBroadcast();
 

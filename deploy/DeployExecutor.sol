@@ -22,6 +22,7 @@ library DeployExecutor {
         address existingAddress;
         uint256 delay;
         uint256 gracePeriod;
+        address guardian;
     }
 
     struct Deployment {
@@ -40,6 +41,7 @@ library DeployExecutor {
         p.existingAddress = config.readAddress(".executor.address");
         p.delay           = config.readUint(".executor.delay");
         p.gracePeriod     = config.readUint(".executor.gracePeriod");
+        p.guardian        = config.readAddress(".executor.guardian");
     }
 
     /**********************************************************************************************/
@@ -76,12 +78,20 @@ library DeployExecutor {
     /**********************************************************************************************/
 
     /**
-     * @notice Grants SUBMISSION_ROLE to the receiver and revokes the deployer's DEFAULT_ADMIN_ROLE.
+     * @notice Grants SUBMISSION_ROLE to the receiver, optionally grants GUARDIAN_ROLE to the
+     *         configured guardian, and revokes the deployer's DEFAULT_ADMIN_ROLE.
      * @dev    Callable inside `vm.startBroadcast/stopBroadcast` so the calls are real on-chain
-     *         transactions signed by the deployer.
+     *         transactions signed by the deployer. The guardian grant is skipped when `guardian`
+     *         is the zero address, and must precede the admin revoke while the deployer still
+     *         holds DEFAULT_ADMIN_ROLE.
      */
-    function setUpPermissions(Executor executor, address receiver, address deployer) internal {
-        executor.grantRole(executor.SUBMISSION_ROLE(),     receiver);
+    function setUpPermissions(Executor executor, address receiver, address guardian, address deployer) internal {
+        executor.grantRole(executor.SUBMISSION_ROLE(), receiver);
+
+        if (guardian != address(0)) {
+            executor.grantRole(executor.GUARDIAN_ROLE(), guardian);
+        }
+
         executor.revokeRole(executor.DEFAULT_ADMIN_ROLE(), deployer);
     }
 
@@ -104,6 +114,10 @@ library DeployExecutor {
         require(executor.hasRole(executor.DEFAULT_ADMIN_ROLE(), deployment.deployer) == false, "DeployExecutor/deployer-has-executor-admin-role");
 
         require(executor.hasRole(executor.SUBMISSION_ROLE(), deployment.receiver) == true, "DeployExecutor/receiver-does-not-have-executor-submission-role");
+
+        if (params.guardian != address(0)) {
+            require(executor.hasRole(executor.GUARDIAN_ROLE(), params.guardian) == true, "DeployExecutor/guardian-does-not-have-executor-guardian-role");
+        }
     }
 
 }

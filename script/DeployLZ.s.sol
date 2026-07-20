@@ -52,7 +52,7 @@ contract DeployLZFull is BaseDeployScript {
             _ulnConfigParams     : receiverParams.ulnConfig
         }));
 
-        DeployExecutor.setUpPermissions(executor, receiver, msg.sender);
+        DeployExecutor.setUpPermissions(executor, receiver, executorParams.guardian, msg.sender);
 
         vm.stopBroadcast();
 

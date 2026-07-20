@@ -2,7 +2,8 @@
   "executor": {
     "address": "0x0000000000000000000000000000000000000000",
     "delay": 0,
-    "gracePeriod": 604800
+    "gracePeriod": 604800,
+    "guardian": "0x0000000000000000000000000000000000000000"
   },
   "receiver": {
     "destinationMessenger": "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
