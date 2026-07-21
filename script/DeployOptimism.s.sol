@@ -42,7 +42,7 @@ contract DeployOptimismFull is BaseDeployScript {
         Executor executor = new Executor(executorParams.delay, executorParams.gracePeriod);
         address  receiver = address(new OptimismReceiver(receiverParams.sourceAuthority, address(executor)));
 
-        DeployExecutor.setUpPermissions(executor, receiver, msg.sender);
+        DeployExecutor.setUpPermissions(executor, receiver, executorParams.guardian, msg.sender);
 
         vm.stopBroadcast();
 

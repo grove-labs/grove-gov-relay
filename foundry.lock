@@ -9,7 +9,7 @@
     "rev": "52715a217dc51d0de15877878ab8213f6cbbbab5"
   },
   "lib/grove-address-registry": {
-    "rev": "a19607c25de970458a9f50cdd217e657f3258616"
+    "rev": "153389ae03417b7a6e15d13618e2d6968c20311e"
   },
   "lib/openzeppelin-contracts": {
     "rev": "dbb6104ce834628e473d2173bbc9d47f81a9eec3"
